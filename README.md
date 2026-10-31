@@ -68,6 +68,11 @@ font cell height that gives about 28 rows. To fit more or less on screen, change
 **Settings → Graphics → Font width / Font height / Font size** (and the map and overmap
 variants) and restart the app.
 
+### Language
+
+The app bundles the upstream translation catalogs. To use Vietnamese, open
+**Settings → Interface → Language** and choose **tiếng Việt**.
+
 ## Files, saves and mods
 
 Everything the game writes lives in the app's Documents folder, which shows up in the Files app
@@ -91,13 +96,13 @@ upstream marks this experimental.
 
 ## Building
 
-Requirements: a Mac with Xcode 15 or later, CMake 3.24 or later, and optionally `gettext`
-(`brew install cmake gettext`) for translations.
+Requirements: a Mac with Xcode 15 or later, CMake 3.24 or later, and `gettext`
+(`brew install cmake gettext`) to compile translations.
 
 ```sh
 scripts/fetch-cdda.sh                 # clone upstream cdda-experimental-2026-10-30-2308 into ./cdda and apply patches/
 scripts/build-deps.sh                 # SDL3, SDL3_ttf, SDL3_image, SDL3_mixer for iOS
-scripts/compile-translations.sh       # optional: lang/*.po -> lang/mo
+scripts/compile-translations.sh       # downloads official .po catalogs if needed, then compiles lang/mo
 scripts/build-app.sh iphoneos         # or: iphonesimulator
 scripts/package-ipa.sh                # unsigned IPA in dist/
 ```

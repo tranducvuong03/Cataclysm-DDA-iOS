@@ -68,9 +68,24 @@ jobs:
           path: deps/install/${{ matrix.platform }}
           key: ${{ steps.deps.outputs.cache-primary-key }}
 
+      - name: Restore upstream translation archive
+        id: translations-cache
+        if: matrix.platform == 'iphoneos'
+        uses: actions/cache/restore@v4
+        with:
+          path: build/translations
+          key: cdda-translations-${{ hashFiles('cdda.env') }}
+
       - name: Compile translations
         if: matrix.platform == 'iphoneos'
         run: scripts/compile-translations.sh
+
+      - name: Save upstream translation archive
+        if: matrix.platform == 'iphoneos' && steps.translations-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: build/translations
+          key: ${{ steps.translations-cache.outputs.cache-primary-key }}
 
       - name: Restore compiler cache
         uses: actions/cache/restore@v4
