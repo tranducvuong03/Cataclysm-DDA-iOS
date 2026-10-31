@@ -169,8 +169,8 @@ jobs:
           test -s "$ipa"
           cp "$ipa" "$release_ipa"
           sha256="$(shasum -a 256 "$release_ipa" | awk '{print $1}')"
-          title="Cataclysm DDA iOS (build #${GITHUB_RUN_NUMBER})"
-          notes="$(printf '## ⬇ Tải IPA\n\nTrong mục **Assets** bên dưới, tải file có tên `Cataclysm-iOS-...-unsigned.ipa`.\n\nĐây là IPA chưa ký. Dùng AltStore, Sideloadly hoặc công cụ sideload khác để ký và cài bằng Apple ID.\n\nGame: %s\nCommit: %s\nSHA-256: `%s`' "$CDDA_VERSION_STRING" "$GITHUB_SHA" "$sha256")"
+          title="Cataclysm DDA iOS IPA (build #${GITHUB_RUN_NUMBER})"
+          notes="$(printf '## Download the IPA\n\nDownload the `Cataclysm-iOS-...-unsigned.ipa` file from the Assets section below.\n\nThis IPA is unsigned. Sign and install it with a sideloading tool such as AltStore or Sideloadly using your Apple ID.\n\nGame version: %s\nSHA-256: `%s`' "$CDDA_VERSION_STRING" "$sha256")"
           if gh release view "$release_tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$release_tag" "$release_ipa" --repo "$GITHUB_REPOSITORY" --clobber
           else
