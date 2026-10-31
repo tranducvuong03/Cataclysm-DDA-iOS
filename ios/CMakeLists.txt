@@ -92,6 +92,7 @@ endif()
 set(SRC "${CDDA_DIR}/src")
 file(GLOB CDDA_SOURCES CONFIGURE_DEPENDS "${SRC}/*.cpp")
 file(GLOB FLATBUFFERS_SOURCES CONFIGURE_DEPENDS "${SRC}/third-party/flatbuffers/*.cpp")
+file(GLOB FMT_SOURCES CONFIGURE_DEPENDS "${SRC}/third-party/fmt/*.cc")
 file(GLOB ZSTD_SOURCES CONFIGURE_DEPENDS
     "${SRC}/third-party/zstd/common/*.c"
     "${SRC}/third-party/zstd/compress/*.c"
@@ -100,7 +101,8 @@ file(GLOB IMGUI_SOURCES CONFIGURE_DEPENDS "${SRC}/third-party/imgui/*.cpp")
 set(IOS_PLATFORM_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/ios_platform.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/ios_platform.mm"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/ios_autoplay.cpp")
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/ios_autoplay.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/ios_main.cpp")
 
 set(CDDA_DEFINITIONS
     TILES
@@ -121,7 +123,7 @@ set(CDDA_INCLUDE_DIRS
     "${DEPS_PREFIX}/include/freetype2")
 
 # Third-party code is compiled warning-free in its own static libraries.
-add_library(cdda-third-party STATIC ${FLATBUFFERS_SOURCES} ${ZSTD_SOURCES} ${IMGUI_SOURCES})
+add_library(cdda-third-party STATIC ${FLATBUFFERS_SOURCES} ${FMT_SOURCES} ${ZSTD_SOURCES} ${IMGUI_SOURCES})
 target_compile_definitions(cdda-third-party PRIVATE ${CDDA_DEFINITIONS})
 target_include_directories(cdda-third-party PRIVATE ${CDDA_INCLUDE_DIRS})
 target_compile_options(cdda-third-party PRIVATE -w -fsigned-char)
