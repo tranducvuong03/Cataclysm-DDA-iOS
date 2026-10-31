@@ -56,7 +56,7 @@ trap 'rm -rf "$extracted"' EXIT
 unzip -q "$archive" 'CC-Sounds/*' -d "$extracted"
 pack="$extracted/CC-Sounds"
 if [[ ! -s "$pack/soundpack.txt" ]] ||
-   ! grep -Fxq 'NAME: CC-Sounds' "$pack/soundpack.txt"; then
+   ! tr -d '\r' < "$pack/soundpack.txt" | grep -Fxq 'NAME: CC-Sounds'; then
     echo "error: CC-Sounds archive has an invalid soundpack.txt" >&2
     exit 1
 fi
