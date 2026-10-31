@@ -21,10 +21,11 @@ this repository holds only the iOS build system, a small patch series and the iO
 
 There is no App Store release. Install the app with your own Apple ID:
 
-1. Download the unsigned IPA from the [Releases](../../releases) page. Each successful device
-   build publishes a release tagged
-   `cdda-experimental-2026-10-30-2308-ios.<run-number>` with its IPA attached. The iOS workflow
-   also keeps Simulator smoke-test logs and screenshots as Actions artifacts.
+1. Download the unsigned IPA from the [Releases](../../releases) page. Open the release titled
+   **“⬇ TẢI IPA — Cataclysm DDA iOS”**, then download the asset ending in
+   `-unsigned.ipa`. The technical tag is named `ios-build-<run-number>`; the release title and
+   asset filename identify the downloadable IPA. The iOS workflow keeps Simulator smoke-test
+   logs and screenshots as Actions artifacts.
 2. Sign and install it with a sideloading tool such as [AltStore](https://altstore.io/) or
    [Sideloadly](https://sideloadly.io/). With a free Apple ID the signature lasts 7 days,
    after which the tool has to refresh it; your saves are kept.
@@ -132,9 +133,11 @@ To build in GitHub Actions instead, commit and push your changes to the configur
 The [iOS workflow](https://github.com/tranducvuong03/Cataclysm-ios/actions/workflows/ios.yml)
 builds the device IPA and also builds and smoke-tests the Simulator version. When the device IPA
 packaging succeeds, the workflow creates a prerelease named for that run and uploads the IPA to
-GitHub Releases. Each run gets a unique tag, so the existing releases are retained. The run is
-tagged after its IPA is packaged; check the same workflow run for its Simulator smoke-test result
-before installing.
+GitHub Releases with a clear **“⬇ TẢI IPA — Cataclysm DDA iOS (build #...)”** title. Each run
+gets a unique internal tag (`ios-build-<run-number>`) and a clearly named
+`Cataclysm-iOS-...-unsigned.ipa` asset, so previous releases are retained. GitHub requires a tag
+behind every Release; users can identify the download by its title and IPA filename. Check the
+same workflow run for its Simulator smoke-test result before installing.
 
 ### Change the upstream version and build a new IPA
 
@@ -248,9 +251,11 @@ chạy lại khi thư viện SDL chưa được build hoặc cần cập nhật.
 
 Nếu dùng Windows hoặc muốn CI build hộ: commit rồi push thay đổi lên branch port. Mở
 [iOS workflow](https://github.com/tranducvuong03/Cataclysm-ios/actions/workflows/ios.yml), chờ
-build thiết bị đóng gói IPA thành công; workflow sẽ tự tạo prerelease trên GitHub Releases với
-tag `cdda-experimental-2026-10-30-2308-ios.<số-run>` và đính kèm IPA. Tên tag riêng cho từng lần
-build nên release cũ không bị ghi đè. Workflow vẫn giữ log và ảnh smoke test của Simulator trong
+build thiết bị đóng gói IPA thành công; workflow sẽ tạo prerelease có tiêu đề dễ nhận biết
+**“⬇ TẢI IPA — Cataclysm DDA iOS (build #...)”** và đính kèm file
+`Cataclysm-iOS-...-unsigned.ipa`. GitHub vẫn cần tag kỹ thuật phía sau mỗi Release
+(`ios-build-<số-run>`), nhưng trang tải sẽ hiện tiêu đề và tên file rõ ràng. Mỗi run dùng tag
+riêng nên không ghi đè release cũ. Workflow vẫn giữ log và ảnh smoke test của Simulator trong
 Actions artifacts; hãy kiểm tra kết quả smoke test trước khi cài IPA.
 
 #### Đổi sang tag upstream mới
