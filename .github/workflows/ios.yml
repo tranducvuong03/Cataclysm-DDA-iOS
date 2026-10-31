@@ -178,6 +178,5 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" \
               --title "$title" \
-              --notes "$notes" \
-              --prerelease
+              --notes "$notes"
           fi

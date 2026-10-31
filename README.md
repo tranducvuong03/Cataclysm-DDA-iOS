@@ -132,8 +132,8 @@ then be reused for later game versions.
 To build in GitHub Actions instead, commit and push your changes to the configured port branch.
 The [iOS workflow](https://github.com/tranducvuong03/Cataclysm-ios/actions/workflows/ios.yml)
 builds the device IPA and also builds and smoke-tests the Simulator version. When the device IPA
-packaging succeeds, the workflow creates a prerelease named for that run and uploads the IPA to
-GitHub Releases with a clear **“⬇ TẢI IPA — Cataclysm DDA iOS (build #...)”** title. Each run
+packaging succeeds, the workflow creates a regular GitHub Release (not a prerelease) for that run
+and uploads the IPA with a clear **“⬇ TẢI IPA — Cataclysm DDA iOS (build #...)”** title. Each run
 gets a unique internal tag (`ios-build-<run-number>`) and a clearly named
 `Cataclysm-iOS-...-unsigned.ipa` asset, so previous releases are retained. GitHub requires a tag
 behind every Release; users can identify the download by its title and IPA filename. Check the
@@ -251,7 +251,8 @@ chạy lại khi thư viện SDL chưa được build hoặc cần cập nhật.
 
 Nếu dùng Windows hoặc muốn CI build hộ: commit rồi push thay đổi lên branch port. Mở
 [iOS workflow](https://github.com/tranducvuong03/Cataclysm-ios/actions/workflows/ios.yml), chờ
-build thiết bị đóng gói IPA thành công; workflow sẽ tạo prerelease có tiêu đề dễ nhận biết
+build thiết bị đóng gói IPA thành công; workflow sẽ tạo GitHub Release chính thức (không phải
+pre-release) có tiêu đề dễ nhận biết
 **“⬇ TẢI IPA — Cataclysm DDA iOS (build #...)”** và đính kèm file
 `Cataclysm-iOS-...-unsigned.ipa`. GitHub vẫn cần tag kỹ thuật phía sau mỗi Release
 (`ios-build-<số-run>`), nhưng trang tải sẽ hiện tiêu đề và tên file rõ ràng. Mỗi run dùng tag
