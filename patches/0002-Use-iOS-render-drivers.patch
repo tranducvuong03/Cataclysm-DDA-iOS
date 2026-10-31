@@ -1,0 +1,24 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: cataclysm-ios <cataclysm-ios@localhost>
+Date: Sat, 31 Oct 2026 13:15:00 +0700
+Subject: [PATCH] Use iOS-compatible SDL render drivers
+
+The desktop renderer hint requests OpenGL, but SDL 3.4 exposes OpenGL ES as
+`opengles2` on iOS. If the GPU renderer is unavailable, try Metal and OpenGL
+ES before Cataclysm falls back to the unsupported window-surface renderer.
+
+---
+ src/sdltiles.cpp | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/src/sdltiles.cpp b/src/sdltiles.cpp
+--- a/src/sdltiles.cpp
++++ b/src/sdltiles.cpp
+@@ -843,3 +843,7 @@ static void WinCreate()
+ #  else
++#    if defined(CATA_IOS)
++    SDL_SetHint( SDL_HINT_RENDER_DRIVER, "gpu,metal,opengles2" );
++#    else
+     SDL_SetHint( SDL_HINT_RENDER_DRIVER, "gpu,opengl" );
++#    endif
+ #  endif
