@@ -107,6 +107,7 @@ trap 'chmod -R u+w "$INSTALLED_APP" 2>/dev/null || true' EXIT
 echo "==> Launching $BUNDLE_ID"
 launch_output="$(SIMCTL_CHILD_CATA_AUTOPLAY="$SCRIPT" \
     SIMCTL_CHILD_CATA_IOS_HARDWARE_KEYBOARD="${SMOKE_HARDWARE_KEYBOARD:-0}" \
+    SIMCTL_CHILD_SDL_AUDIO_DRIVER=dummy \
     xcrun simctl launch \
     --stdout="$OUT/stdout.log" --stderr="$OUT/stderr.log" \
     "$UDID" "$BUNDLE_ID")"
