@@ -30,6 +30,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <deque>
 #include <mutex>
 #include <sstream>
 #include <string>
@@ -52,6 +53,7 @@ size_t next_step = 0;
 SDL_TimerID timer_id = 0;
 SDL_WindowID game_window_id = 0;
 std::string screenshot_dir;
+std::deque<std::string> text_event_storage;
 
 std::mutex screenshot_mutex;
 std::string pending_screenshot;
@@ -140,8 +142,8 @@ void push_text( const std::string &text )
         event.type = SDL_EVENT_TEXT_INPUT;
         event.text.timestamp = SDL_GetTicks();
         event.text.windowID = window_id();
-        const std::string ch = text.substr( i, len );
-        SDL_strlcpy( event.text.text, ch.c_str(), sizeof( event.text.text ) );
+        text_event_storage.push_back( text.substr( i, len ) );
+        event.text.text = text_event_storage.back().c_str();
         SDL_PushEvent( &event );
         i += len;
     }
