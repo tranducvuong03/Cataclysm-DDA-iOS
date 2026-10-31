@@ -27,6 +27,13 @@ TIMEOUT="${SMOKE_TIMEOUT:-900}"
 mkdir -p "$OUT"
 OUT="$(cd "$OUT" && pwd)"
 
+for asset in data/font/Terminus.ttf data/shaders/grayscale.frag.msl; do
+    if [[ ! -s "$APP/$asset" ]]; then
+        echo "error: required graphics asset $asset is missing from $APP" >&2
+        exit 1
+    fi
+done
+
 BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist")"
 
 # Main menu -> New Game -> Play Now! (default scenario), then play a little
@@ -180,6 +187,11 @@ if grep -q " ERROR : " "$OUT/config/debug.log" 2>/dev/null; then
 fi
 if grep -q "requested non-existing option GPU_BACKEND" "$OUT/config/debug.log" 2>/dev/null; then
     echo "error: SDL startup requested missing GPU_BACKEND option" >&2
+    status=1
+fi
+if grep -q "The tileset you're using has no 'unknown' tile defined!" \
+        "$OUT/config/debug.log" 2>/dev/null; then
+    echo "error: a loaded tileset is missing its required 'unknown' fallback tile" >&2
     status=1
 fi
 

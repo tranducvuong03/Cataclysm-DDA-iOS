@@ -166,11 +166,15 @@ it with `shasum -a 256 <downloaded-archive>`. The build script verifies the chec
 extracting any catalogs.
 If that release has no translation archive, confirm the source checkout contains usable
 `lang/po/*.po` files before building; do not copy translations from a different game version.
-The source repository does not include the full graphical tilesets. Get
+The source repository does not include all binary graphics assets (including the full tilesets,
+fonts, and compiled Metal shaders). Get
 `CDDA_GRAPHICS_SHA256` from the release asset
 `cdda-windows-with-graphics-x64-YYYY-MM-DD-HHMM.zip` (again, the asset name omits
-`cdda-experimental-`). The script downloads the archive, verifies its checksum, and installs only
-its `gfx/` directory. It intentionally fails if the expected MShockXotto+ tileset is absent.
+`cdda-experimental-`). The script downloads the archive, verifies its checksum, and installs the
+`gfx/`, `data/font/`, and `data/shaders/` resources used by iOS. It fails if the expected
+MShockXotto+ tileset, Terminus font, or required Metal shader is absent.
+It also adds a blank `unknown` fallback to the portrait add-on, which the upstream tileset loader
+requires even though that add-on only defines portraits.
 
 Next, rebuild the patched upstream checkout from scratch. **Back up any local work in `cdda/`
 first**: `--force` removes that generated checkout and recreates it from the pinned upstream and
@@ -297,10 +301,14 @@ phần. Nếu phải sửa code trong `cdda/`, hãy commit thay đổi trên bra
 `scripts/export-patches.sh` để cập nhật `patches/`, xem lại diff rồi chạy
 `scripts/prepare-cdda.sh` để kiểm tra patch series đã đồng bộ.
 
-Bản source upstream không có đầy đủ tileset đồ họa. Lấy SHA-256 của asset
+Bản source upstream không có đầy đủ tài nguyên đồ họa dạng binary (gồm tileset, font và Metal
+shader đã biên dịch). Lấy SHA-256 của asset
 `cdda-windows-with-graphics-x64-YYYY-MM-DD-HHMM.zip` trong release cùng tag, điền vào
 `CDDA_GRAPHICS_SHA256` trong `cdda.env`. Lấy digest `sha256:...` của asset và chỉ chép phần hex.
-`scripts/fetch-graphics.sh` tải gói, kiểm tra SHA-256 rồi chép `gfx/` vào checkout.
+`scripts/fetch-graphics.sh` tải gói, kiểm tra SHA-256 rồi chép `gfx/`, `data/font/` và
+`data/shaders/` vào checkout. Script báo lỗi nếu thiếu tileset MShockXotto+, font Terminus hoặc
+Metal shader cần thiết. Script cũng bổ sung tile `unknown` trống vào tileset portrait phụ vì
+loader upstream yêu cầu tile dự phòng này dù tileset đó chỉ khai báo ảnh chân dung.
 
 Build và đóng gói IPA:
 
@@ -331,7 +339,7 @@ mới có thể không tương thích save cũ; hãy sao lưu thư mục `save/`
 |---|---|
 | `cdda.env` | Upstream repository, tag and commit the port is built from |
 | `patches/` | Changes to upstream sources, applied as commits on branch `ios` of `./cdda` |
-| `scripts/fetch-graphics.sh` | Downloads and verifies the matching upstream tileset archive |
+| `scripts/fetch-graphics.sh` | Downloads and verifies the matching upstream graphics archive |
 | `ios/CMakeLists.txt` | Xcode project: game sources, SDL3 libraries, app bundle, game data |
 | `ios/src/ios_platform.mm` | iOS platform layer: paths, safe area, keyboard, haptics, keyboard button |
 | `ios/src/ios_autoplay.cpp` | Scripted input for automated tests |

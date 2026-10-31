@@ -107,9 +107,10 @@ if [[ ! -d "$APP/data/json" ]]; then
     exit 1
 fi
 for item in gfx/MShockXotto+/tileset.txt \
+            data/font/Terminus.ttf data/shaders/grayscale.frag.msl \
             lang/mo/vi/LC_MESSAGES/cataclysm-dda.mo PrivacyInfo.xcprivacy; do
     if [[ ! -s "$APP/$item" ]]; then
-        echo "error: $item is missing from $APP; fetch the graphics and compile translations before building" >&2
+        echo "error: $item is missing from $APP; fetch graphics, compile translations, and rebuild" >&2
         exit 1
     fi
 done

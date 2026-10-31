@@ -30,6 +30,8 @@ listing="$(unzip -Z1 "$OUT")"
 missing=0
 for prefix in Payload/Cataclysm.app/Info.plist Payload/Cataclysm.app/Cataclysm \
               Payload/Cataclysm.app/data/json/ \
+              Payload/Cataclysm.app/data/font/Terminus.ttf \
+              Payload/Cataclysm.app/data/shaders/grayscale.frag.msl \
               Payload/Cataclysm.app/gfx/MShockXotto+/tileset.txt \
               Payload/Cataclysm.app/lang/mo/vi/LC_MESSAGES/cataclysm-dda.mo; do
     if ! grep -qF -- "$prefix" <<<"$listing"; then
