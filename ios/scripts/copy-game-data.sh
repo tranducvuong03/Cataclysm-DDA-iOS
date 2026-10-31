@@ -15,10 +15,6 @@ rsync -a --delete \
     "$CDDA/data/" "$DEST/data/"
 rsync -a --delete --exclude CMakeLists.txt "$CDDA/gfx/" "$DEST/gfx/"
 
-# Virtual joystick image used by the touch controls.
-mkdir -p "$DEST/android"
-cp -f "$CDDA/android/app/src/main/assets/android/joystick.png" "$DEST/android/joystick.png"
-
 # Compiled translations, if scripts/compile-translations.sh was run.
 if [ -d "$CDDA/lang/mo" ]; then
     mkdir -p "$DEST/lang"

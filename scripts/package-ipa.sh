@@ -29,8 +29,7 @@ echo "==> Wrote $OUT ($(du -h "$OUT" | cut -f1))"
 listing="$(unzip -Z1 "$OUT")"
 missing=0
 for prefix in Payload/Cataclysm.app/Info.plist Payload/Cataclysm.app/Cataclysm \
-              Payload/Cataclysm.app/data/json/ Payload/Cataclysm.app/gfx/ \
-              Payload/Cataclysm.app/android/joystick.png; do
+              Payload/Cataclysm.app/data/json/ Payload/Cataclysm.app/gfx/; do
     if ! grep -qF -- "$prefix" <<<"$listing"; then
         echo "error: $prefix is missing from $OUT" >&2
         missing=1
