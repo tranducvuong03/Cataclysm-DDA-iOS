@@ -152,8 +152,11 @@ The workflow also checks the upstream releases every 30 minutes for a new
 `cdda-experimental-YYYY-MM-DD-HHMM` release. Once its official translation and graphics assets
 and SHA-256 digests are available, it builds that exact version, runs the same smoke tests, and
 publishes a prerelease titled with the upstream version. The uploaded IPA filename ends in
-`-unsigned.ipa`. Existing upstream versions are not built again. If an upstream change is
-incompatible with the iOS patches or fails a build or smoke test, no IPA release is published.
+`-unsigned.ipa`. After a successful build and release, it also updates `cdda.env` on `main` with
+the upstream tag, commit, and asset checksums. Existing upstream versions are not built again.
+If an upstream change is incompatible with the iOS patches or fails a build or smoke test, no
+IPA release is published and `cdda.env` is left unchanged.
+
 ### Change the upstream version and build a new IPA
 
 The upstream tag, exact source commit, displayed game version, translation checksum, and graphics
