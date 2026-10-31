@@ -32,6 +32,9 @@ for prefix in Payload/Cataclysm.app/Info.plist Payload/Cataclysm.app/Cataclysm \
               Payload/Cataclysm.app/data/json/ \
               Payload/Cataclysm.app/data/font/Terminus.ttf \
               Payload/Cataclysm.app/data/shaders/grayscale.frag.msl \
+              Payload/Cataclysm.app/data/sound/CC-Sounds/soundpack.txt \
+              Payload/Cataclysm.app/data/sound/CC-Sounds/LICENSE.txt \
+              Payload/Cataclysm.app/data/sound/CC-Sounds/music/CO.AG_authorisation.txt \
               Payload/Cataclysm.app/gfx/MShockXotto+/tileset.txt \
               Payload/Cataclysm.app/lang/mo/vi/LC_MESSAGES/cataclysm-dda.mo; do
     if ! grep -qF -- "$prefix" <<<"$listing"; then

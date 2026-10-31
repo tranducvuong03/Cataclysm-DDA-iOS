@@ -108,7 +108,11 @@ if [[ ! -d "$APP/data/json" ]]; then
 fi
 for item in gfx/MShockXotto+/tileset.txt \
             data/font/Terminus.ttf data/shaders/grayscale.frag.msl \
-            lang/mo/vi/LC_MESSAGES/cataclysm-dda.mo PrivacyInfo.xcprivacy; do
+            lang/mo/vi/LC_MESSAGES/cataclysm-dda.mo \
+            data/sound/CC-Sounds/soundpack.txt \
+            data/sound/CC-Sounds/LICENSE.txt \
+            data/sound/CC-Sounds/music/CO.AG_authorisation.txt \
+            PrivacyInfo.xcprivacy; do
     if [[ ! -s "$APP/$item" ]]; then
         echo "error: $item is missing from $APP; fetch graphics, compile translations, and rebuild" >&2
         exit 1

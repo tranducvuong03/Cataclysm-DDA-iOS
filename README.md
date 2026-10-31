@@ -14,7 +14,7 @@ this repository holds only the iOS build system, a small patch series and the iO
 | Game version | **cdda-experimental-2026-10-30-2308** (upstream tag [`cdda-experimental-2026-10-30-2308`](https://github.com/CleverRaven/Cataclysm-DDA/tree/cdda-experimental-2026-10-30-2308)) |
 | Devices | iPhone and iPad, arm64, iOS/iPadOS 15 or later, landscape |
 | Graphics | Tilesets and ASCII, all upstream tilesets included |
-| Sound | Supported (SDL3_mixer); add soundpacks yourself, see below |
+| Sound | CC-Sounds effects and music bundled (SDL3_mixer) |
 | Languages | All upstream translations |
 
 ## Installing
@@ -78,6 +78,19 @@ selectable even when the upstream release does not include generated translation
 The app bundles the official graphical tilesets from the matching upstream release. To switch
 from ASCII graphics, open **Settings → Graphics** and choose a tileset such as **MShockXotto+**.
 
+### Sound
+
+The IPA includes the **CC-Sounds** soundpack, with sound effects and music. Sound is enabled by
+default. If needed, open **Options → General → Soundpack options**, choose **CC-Sounds**, and
+restart the game.
+
+The pack is downloaded from
+[Fris0uman/CDDA-Soundpacks](https://github.com/Fris0uman/CDDA-Soundpacks) at the pinned
+2025-11-15 release. CC-Sounds is licensed under
+[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Per-file sound-effect credits,
+the pack license, and the authorization for CO.AG music are included in the app bundle under
+`data/sound/CC-Sounds/`.
+
 ## Files, saves and mods
 
 Everything the game writes lives in the app's Documents folder, which shows up in the Files app
@@ -89,7 +102,7 @@ under *On My iPhone/iPad → Cataclysm* and in Finder when the device is connect
 | `config/` | Options, keybindings, `debug.log` and crash logs |
 | `mods/` | Your own mods, one folder per mod |
 | `gfx/` | Extra tilesets |
-| `sound/` | Soundpacks, e.g. [CDDA-Soundpack](https://github.com/Fris0uman/CDDA-Soundpack) |
+| `sound/` | Additional soundpacks; CC-Sounds is bundled with the app |
 | `memorial/`, `achievements/` | Graveyard and achievements |
 
 To move a game between devices or to and from desktop Cataclysm built from the same upstream
@@ -113,6 +126,7 @@ From the repository root on a Mac:
 ```sh
 scripts/fetch-cdda.sh
 bash scripts/fetch-graphics.sh
+bash scripts/fetch-soundpack.sh
 scripts/build-deps.sh iphoneos
 scripts/compile-translations.sh
 scripts/build-app.sh iphoneos Release
@@ -123,7 +137,7 @@ The unsigned IPA is written to
 `dist/Cataclysm-cdda-experimental-2026-10-30-2308-unsigned.ipa`. Sideload it with AltStore,
 Sideloadly, or another signing tool. An unsigned IPA cannot be installed directly on an iPhone.
 The first dependency build takes a while; it creates the SDL3 libraries in `deps/`, which can
-then be reused for later game versions.
+then be reused for later game versions. Bundling CC-Sounds adds about 138 MB to the app.
 
 To build in GitHub Actions instead, commit and push your changes to the configured port branch.
 The [iOS workflow](https://github.com/tranducvuong03/Cataclysm-IOS-Experimental/actions/workflows/ios.yml)
@@ -169,19 +183,22 @@ scripts/fetch-cdda.sh --force
    This applies every iOS patch. If a patch fails, stop and update it for the new upstream source;
    do not build a partially patched checkout. After porting patches, run
    `scripts/export-patches.sh`, review the changes, and verify them with `scripts/prepare-cdda.sh`.
-4. Fetch assets, build the app, and package the IPA:
+4. Fetch the graphics, soundpack, and translation assets, build the app, and package the IPA:
 
 ```sh
 scripts/prepare-cdda.sh
 bash scripts/fetch-graphics.sh
+bash scripts/fetch-soundpack.sh
 scripts/build-deps.sh iphoneos       # only if SDL dependencies are missing or need rebuilding
 scripts/compile-translations.sh
 scripts/build-app.sh iphoneos Release
 scripts/package-ipa.sh
 ```
 
-The scripts verify the translation and graphics checksums. The graphics download supplies the
-tilesets, Terminus font, and Metal shaders required by iOS. To choose a custom IPA path:
+The scripts verify the translation, graphics, and soundpack checksums. The graphics download
+supplies the tilesets, Terminus font, and Metal shaders required by iOS. The independently pinned
+soundpack version and checksums are in `soundpack.env`; this audio release does not have to change
+when the game source version changes. To choose a custom IPA path:
 
 ```sh
 scripts/package-ipa.sh \
@@ -215,8 +232,10 @@ files.
 | Path | |
 |---|---|
 | `cdda.env` | Upstream repository, tag and commit the port is built from |
+| `soundpack.env` | Pinned CC-Sounds release, source commit, and checksums |
 | `patches/` | Changes to upstream sources, applied as commits on branch `ios` of `./cdda` |
 | `scripts/fetch-graphics.sh` | Downloads and verifies the matching upstream graphics archive |
+| `scripts/fetch-soundpack.sh` | Downloads and verifies the pinned CC-Sounds release |
 | `ios/CMakeLists.txt` | Xcode project: game sources, SDL3 libraries, app bundle, game data |
 | `ios/src/ios_platform.mm` | iOS platform layer: paths, safe area, keyboard, haptics, keyboard button |
 | `ios/src/ios_autoplay.cpp` | Scripted input for automated tests |

@@ -27,6 +27,12 @@ if [ ! -s "$CDDA/lang/mo/vi/LC_MESSAGES/cataclysm-dda.mo" ]; then
     echo "error: Vietnamese translation is missing; run scripts/compile-translations.sh" >&2
     exit 1
 fi
+if [ ! -s "$CDDA/data/sound/CC-Sounds/soundpack.txt" ] ||
+   [ ! -s "$CDDA/data/sound/CC-Sounds/LICENSE.txt" ] ||
+   [ ! -s "$CDDA/data/sound/CC-Sounds/music/CO.AG_authorisation.txt" ]; then
+    echo "error: CC-Sounds is missing; run bash scripts/fetch-soundpack.sh" >&2
+    exit 1
+fi
 
 rsync -a --delete \
     --exclude CMakeLists.txt --exclude application_manifest.xml \

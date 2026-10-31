@@ -189,6 +189,10 @@ if grep -q "requested non-existing option GPU_BACKEND" "$OUT/config/debug.log" 2
     echo "error: SDL startup requested missing GPU_BACKEND option" >&2
     status=1
 fi
+if ! grep -qF "Current soundpack is: CC-Sounds" "$OUT/config/debug.log" 2>/dev/null; then
+    echo "error: SDL audio did not initialize with the bundled CC-Sounds pack" >&2
+    status=1
+fi
 if grep -q "The tileset you're using has no 'unknown' tile defined!" \
         "$OUT/config/debug.log" 2>/dev/null; then
     echo "error: a loaded tileset is missing its required 'unknown' fallback tile" >&2
