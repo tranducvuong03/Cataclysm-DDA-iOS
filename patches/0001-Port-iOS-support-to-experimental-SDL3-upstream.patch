@@ -10,6 +10,7 @@ Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
  src/advanced_inv.cpp         |   2 +-
  src/advanced_inv_pane.cpp    |   2 +-
  src/bionics_ui.cpp           |   2 +-
+ src/cata_allocator.cpp       |   2 +-
  src/cata_tiles.cpp           |   2 +-
  src/debug.cpp                |  13 +-
  src/debug_menu.cpp           |   2 +-
@@ -38,7 +39,7 @@ Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
  src/string_input_popup.cpp   |   4 +-
  src/uilist.cpp               |   2 +-
  src/worldfactory.cpp         |   4 +-
- 31 files changed, 542 insertions(+), 144 deletions(-)
+ 32 files changed, 543 insertions(+), 145 deletions(-)
 
 diff --git a/src/advanced_inv.cpp b/src/advanced_inv.cpp
 index 0156761..2bcdf0f 100644
@@ -79,6 +80,16 @@ index a4c4c38..d85d648 100644
          ctxt.get_registered_manual_keys().clear();
          for( size_t i = 0; i < current_bionic_list->size(); i++ ) {
              ctxt.register_manual_key( ( *current_bionic_list )[i]->invlet,
+diff --git a/src/cata_allocator.cpp b/src/cata_allocator.cpp
+index 9932941..c74285b 100644
+--- a/src/cata_allocator.cpp
++++ b/src/cata_allocator.cpp
+@@ -7,4 +7,4 @@
+ // snmalloc isn't compatible with any sanitizers.
+-#if !defined(__SANITIZE_ADDRESS__) && !__has_feature(address_sanitizer)
++#if !defined(__SANITIZE_ADDRESS__) && !__has_feature(address_sanitizer) && !defined(CATA_IOS)
+ #define CATA_USE_SNMALLOC
+ #endif
 diff --git a/src/cata_tiles.cpp b/src/cata_tiles.cpp
 index c4b85c1..6807781 100644
 --- a/src/cata_tiles.cpp
