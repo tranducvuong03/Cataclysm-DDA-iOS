@@ -6,15 +6,16 @@ Subject: [PATCH] Handle missing GPU backend option during SDL startup
 Some iOS builds do not register GPU_BACKEND, but SDL startup reads it
 unconditionally. Use SDL's automatic backend selection when it is absent
 instead of logging an error and reading a void option.
-
 ---
  src/sdltiles.cpp | 3 ++-
  1 file changed, 2 insertions(+), 1 deletion(-)
 
 diff --git a/src/sdltiles.cpp b/src/sdltiles.cpp
+index 6eeb5c7..ed287fb 100644
 --- a/src/sdltiles.cpp
 +++ b/src/sdltiles.cpp
-@@ -730,6 +730,7 @@ static void InitSDL()
+@@ -817,7 +817,8 @@ static void WinCreate()
+ 
  #if !defined(__ANDROID__)
      const bool gpu_driver_from_env = std::getenv( "SDL_GPU_DRIVER" ) != nullptr;
 -    const std::string gpu_backend = get_option<std::string>( "GPU_BACKEND" );

@@ -21,21 +21,21 @@ Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
  src/handle_action.cpp        |   4 +-
  src/input.cpp                |   6 +-
  src/input_context.cpp        |   9 +-
- src/input_context.h          |  20 ++++----
+ src/input_context.h          |  20 +-
  src/input_enums.h            |   2 +-
  src/inventory.cpp            |   3 -
  src/inventory_ui.cpp         |   8 +-
  src/json_loader.cpp          |  21 ++
- src/main.cpp                 |  22 ++
+ src/main.cpp                 |  22 +-
  src/messages.cpp             |   2 +-
  src/mutation_ui.cpp          |   2 +-
  src/npctalk.cpp              |   4 +-
- src/options.cpp              |  97 ++++++++--
+ src/options.cpp              |  97 ++++++--
  src/output.cpp               |   2 +-
  src/overmap_ui.cpp           |   2 +-
  src/savegame.cpp             |   4 +-
- src/sdl_font.cpp              |  10 +-
- src/sdltiles.cpp              | 420 +++++++++++++++++++++++++++++++++++-------
+ src/sdl_font.cpp             |  10 +-
+ src/sdltiles.cpp             | 420 +++++++++++++++++++++++++++++------
  src/string_editor_window.cpp |   4 +-
  src/string_input_popup.cpp   |   4 +-
  src/uilist.cpp               |   2 +-
@@ -85,12 +85,15 @@ diff --git a/src/cata_allocator.cpp b/src/cata_allocator.cpp
 index 9932941..c74285b 100644
 --- a/src/cata_allocator.cpp
 +++ b/src/cata_allocator.cpp
-@@ -7,4 +7,4 @@
+@@ -5,7 +5,7 @@
+ #endif
+ 
  // snmalloc isn't compatible with any sanitizers.
 -#if !defined(__SANITIZE_ADDRESS__) && !__has_feature(address_sanitizer)
 +#if !defined(__SANITIZE_ADDRESS__) && !__has_feature(address_sanitizer) && !defined(CATA_IOS)
  #define CATA_USE_SNMALLOC
  #endif
+ 
 diff --git a/src/cata_tiles.cpp b/src/cata_tiles.cpp
 index c4b85c1..6807781 100644
 --- a/src/cata_tiles.cpp
@@ -344,7 +347,7 @@ index 945ddaa..a359062 100644
  {
      // Prevent duplicates
 diff --git a/src/input_context.h b/src/input_context.h
-index fc02238..d2da537 100644
+index fc02238..2efbc8a 100644
 --- a/src/input_context.h
 +++ b/src/input_context.h
 @@ -67,14 +67,14 @@ class input_context
@@ -401,11 +404,15 @@ index fc02238..d2da537 100644
              registered_manual_keys = std::forward<Rhs>( other ).registered_manual_keys;
  #endif
              registered_actions = std::forward<Rhs>( other ).registered_actions;
-@@ -168,3 +168,3 @@ class input_context
+@@ -165,7 +165,7 @@ class input_context
+         }
+ 
+ 
 -#if defined(__ANDROID__)
 +#if defined(__ANDROID__) || defined(CATA_IOS)
          // HACK: hack to allow creating manual keybindings for getch() instances, uilists etc. that don't use an input_context outside of the Android version
          struct manual_key {
+             manual_key( int _key, const std::string &_text ) : key( _key ), text( _text ) {}
 @@ -489,7 +489,7 @@ class input_context
          input_event first_unassigned_hotkey( const hotkey_queue &queue ) const;
          input_event next_unassigned_hotkey( const hotkey_queue &queue, const input_event &prev ) const;
@@ -528,7 +535,7 @@ index 1863c50..6d768a0 100644
  }
  
 diff --git a/src/main.cpp b/src/main.cpp
-index a5f96b9..c896ee6 100644
+index a5f96b9..4453062 100644
 --- a/src/main.cpp
 +++ b/src/main.cpp
 @@ -136,6 +136,12 @@ int start_logger( const char *app_name )
@@ -562,7 +569,10 @@ index a5f96b9..c896ee6 100644
  extern "C" int SDL_main( int argc, char **argv ) {
  #else
  int main( int argc, const char *argv[] )
-@@ -920,1 +920,13 @@ int main( int argc, const char *argv[] )
+@@ -917,6 +925,18 @@ int main( int argc, const char *argv[] )
+ 
+     cli_opts cli = parse_commandline( argc, const_cast<const char **>( argv ) );
+ 
 +#if defined(CATA_IOS)
 +    // Set platform paths before interface initialization loads fonts and data.
 +    const std::string ios_resource_dir = cata_ios::resource_dir();
@@ -576,6 +586,8 @@ index a5f96b9..c896ee6 100644
 +#endif
 +
      validate_directories();
+     initialize_debugging();
+     initialize_locale();
 diff --git a/src/messages.cpp b/src/messages.cpp
 index 2718b9e..66b3020 100644
 --- a/src/messages.cpp
@@ -625,7 +637,7 @@ index 07c570a..ab7107d 100644
  #endif
              evt = ctxt.next_unassigned_hotkey( queue, evt );
 diff --git a/src/options.cpp b/src/options.cpp
-index a3d53fb..5b06ec5 100644
+index a3d53fb..09c9996 100644
 --- a/src/options.cpp
 +++ b/src/options.cpp
 @@ -54,6 +54,16 @@
@@ -645,7 +657,7 @@ index a3d53fb..5b06ec5 100644
  #include <algorithm>
  #include <cstdlib>
  #include <memory>
-@@ -231,6 +235,8 @@ options_manager::options_manager()
+@@ -231,6 +241,8 @@ options_manager::options_manager()
  
  #if defined(__ANDROID__)
      pages_.emplace_back( "android", to_translation( "Android" ) );
@@ -654,7 +666,7 @@ index a3d53fb..5b06ec5 100644
  #endif
  
      enable_json( "DEFAULT_REGION" );
-@@ -2384,16 +2390,15 @@ void options_manager::add_options_interface()
+@@ -2384,16 +2396,15 @@ void options_manager::add_options_interface()
  
  void options_manager::add_options_graphics()
  {
@@ -676,7 +688,7 @@ index a3d53fb..5b06ec5 100644
  #endif
      const auto add_empty_line = [&]() {
          this->add_empty_line( "graphics" );
-@@ -2501,6 +2506,15 @@ void options_manager::add_options_graphics()
+@@ -2501,6 +2512,15 @@ void options_manager::add_options_graphics()
      add_option_group( "graphics", Group( "font_params", to_translation( "Font settings" ),
                                           to_translation( "Font display settings.  To change font type or source file, edit fonts.json in config directory." ) ),
      [&]( const std::string & page_id ) {
@@ -692,7 +704,7 @@ index a3d53fb..5b06ec5 100644
          add( "FONT_BLENDING", page_id, to_translation( "Font blending" ),
               to_translation( "If true, vector fonts may look better." ),
               false, COPT_CURSES_HIDE
-@@ -2508,47 +2522,47 @@ void options_manager::add_options_graphics()
+@@ -2508,47 +2528,47 @@ void options_manager::add_options_graphics()
  
          add( "FONT_WIDTH", page_id, to_translation( "Font width" ),
               to_translation( "Set the font width.  Requires restart." ),
@@ -749,7 +761,7 @@ index a3d53fb..5b06ec5 100644
             );
  
          add( "USE_DRAW_ASCII_LINES_ROUTINE", page_id, to_translation( "SDL ASCII lines" ),
-@@ -2824,7 +2838,7 @@ void options_manager::add_options_graphics()
+@@ -2824,7 +2844,7 @@ void options_manager::add_options_graphics()
             );
  #endif
  
@@ -758,7 +770,7 @@ index a3d53fb..5b06ec5 100644
  #   if !defined(TILES)
          // No renderer selection in non-TILES mode
          add( "RENDERER", page_id, to_translation( "Renderer" ),
-@@ -2856,8 +2870,12 @@ void options_manager::add_options_graphics()
+@@ -2856,8 +2876,12 @@ void options_manager::add_options_graphics()
  #else
          add( "SOFTWARE_RENDERING", page_id, to_translation( "Software rendering" ),
               to_translation( "Use software renderer instead of graphics card acceleration.  Requires restart." ),
@@ -771,7 +783,7 @@ index a3d53fb..5b06ec5 100644
               COPT_CURSES_HIDE
             );
  #endif
-@@ -2870,7 +2888,7 @@ void options_manager::add_options_graphics()
+@@ -2870,7 +2894,7 @@ void options_manager::add_options_graphics()
               false, COPT_ALWAYS_HIDE
             );
  
@@ -780,7 +792,7 @@ index a3d53fb..5b06ec5 100644
          get_option( "FRAMEBUFFER_ACCEL" ).setPrerequisite( "SOFTWARE_RENDERING" );
  #endif
  
-@@ -2895,7 +2913,7 @@ void options_manager::add_options_graphics()
+@@ -2895,7 +2919,7 @@ void options_manager::add_options_graphics()
          },
          "none", COPT_CURSES_HIDE );
  
@@ -789,7 +801,7 @@ index a3d53fb..5b06ec5 100644
          add( "SCALING_FACTOR", page_id, to_translation( "Scaling factor" ),
          to_translation( "Factor by which to scale the display.  Requires restart." ), {
              { "1", to_translation( "1x" )},
-@@ -3047,7 +3065,7 @@ void options_manager::add_options_debug()
+@@ -3047,7 +3071,7 @@ void options_manager::add_options_debug()
  
  void options_manager::add_options_android()
  {
@@ -798,7 +810,7 @@ index a3d53fb..5b06ec5 100644
      const auto add_empty_line = [&]() {
          this->add_empty_line( "android" );
      };
-@@ -3120,9 +3138,15 @@ void options_manager::add_options_android()
+@@ -3120,9 +3144,15 @@ void options_manager::add_options_android()
      add_empty_line();
  
      add_option_group( "android", Group( "android_keyboard_opts",
@@ -814,7 +826,7 @@ index a3d53fb..5b06ec5 100644
          add( "ANDROID_TRAP_BACK_BUTTON", page_id, to_translation( "Trap Back button" ),
               to_translation( "If true, the back button will NOT back out of the app and will be passed to the application as SDL_SCANCODE_AC_BACK.  Requires restart." ),
               // take default setting from pre-game settings screen - important as there are issues with Back button on Android 9 with specific devices
-@@ -3134,6 +3158,7 @@ void options_manager::add_options_android()
+@@ -3134,6 +3164,7 @@ void options_manager::add_options_android()
                               "such as popup messages and yes/no dialogs." ),
               android_get_default_setting( "Native Android UI", true )
             );
@@ -822,7 +834,7 @@ index a3d53fb..5b06ec5 100644
  
          add( "ANDROID_AUTO_KEYBOARD", page_id, to_translation( "Auto-manage virtual keyboard" ),
               to_translation( "If true, automatically show/hide the virtual keyboard when necessary based on context.  If false, virtual keyboard must be toggled manually." ),
-@@ -3149,16 +3174,28 @@ void options_manager::add_options_android()
+@@ -3149,16 +3180,28 @@ void options_manager::add_options_android()
  
      add_empty_line();
  
@@ -851,7 +863,7 @@ index a3d53fb..5b06ec5 100644
      [&]( const std::string & page_id ) {
          add( "ANDROID_SHOW_VIRTUAL_JOYSTICK", page_id, to_translation( "Show virtual joystick" ),
               to_translation( "If true, show the virtual joystick when touching and holding the screen.  Gives a visual indicator of deadzone and stick deflection." ),
-@@ -3229,8 +3266,13 @@ void options_manager::add_options_android()
+@@ -3229,8 +3272,13 @@ void options_manager::add_options_android()
      add_empty_line();
  
      add_option_group( "android", Group( "shortcut_android_opts",
@@ -865,7 +877,7 @@ index a3d53fb..5b06ec5 100644
      [&]( const std::string & page_id ) {
          add( "ANDROID_SHORTCUT_DEFAULTS", page_id, to_translation( "Default gameplay shortcuts" ),
               to_translation( "The default set of gameplay shortcuts to show.  Used on starting a new game and whenever all gameplay shortcuts are removed." ),
-@@ -3253,8 +3295,13 @@ void options_manager::add_options_android()
+@@ -3253,8 +3301,13 @@ void options_manager::add_options_android()
      add_empty_line();
  
      add_option_group( "android", Group( "gestures_android_opts",
@@ -879,7 +891,7 @@ index a3d53fb..5b06ec5 100644
      [&]( const std::string & page_id ) {
          add( "ANDROID_TAP_KEY", page_id, to_translation( "Tap key (in-game)" ),
               to_translation( "The key to press when tapping during gameplay." ),
-@@ -3303,7 +3350,11 @@ void options_manager::add_options_android()
+@@ -3303,7 +3356,11 @@ void options_manager::add_options_android()
      add_empty_line();
  
      add_option_group( "android", Group( "shortcut_android_in_game_opts",
@@ -891,7 +903,7 @@ index a3d53fb..5b06ec5 100644
                                          to_translation( "Options regarding in-game shortcut." ) ),
      [&]( const std::string & page_id ) {
          add( "ANDROID_SHORTCUT_AUTOADD", page_id,
-@@ -4165,7 +4216,7 @@ std::string options_manager::show( bool ingame, const bool world_options_only, b
+@@ -4165,7 +4222,7 @@ std::string options_manager::show( bool ingame, const bool world_options_only, b
      calendar::set_eternal_night( ::get_option<std::string>( "ETERNAL_TIME_OF_DAY" ) == "night" );
      calendar::set_eternal_day( ::get_option<std::string>( "ETERNAL_TIME_OF_DAY" ) == "day" );
  
@@ -952,7 +964,7 @@ diff --git a/src/sdl_font.cpp b/src/sdl_font.cpp
 index aa43983..fba7c15 100644
 --- a/src/sdl_font.cpp
 +++ b/src/sdl_font.cpp
-@@ -108,11 +110,17 @@ std::unique_ptr<Font> Font::load_font( SDL_Renderer_Ptr &renderer, Uint32 pixel_
+@@ -108,11 +108,17 @@ std::unique_ptr<Font> Font::load_font( SDL_Renderer_Ptr &renderer, Uint32 pixel_
          }
      }
      // Not loaded as bitmap font (or it failed), try to load as truetype
@@ -973,7 +985,7 @@ index aa43983..fba7c15 100644
      return nullptr;
  }
 diff --git a/src/sdltiles.cpp b/src/sdltiles.cpp
-index a660043..e89cd96 100644
+index a660043..74dfd2f 100644
 --- a/src/sdltiles.cpp
 +++ b/src/sdltiles.cpp
 @@ -97,7 +97,9 @@ std::unique_ptr<cataimgui::client> imclient;
@@ -1010,7 +1022,7 @@ index a660043..e89cd96 100644
  #if defined(SDL_HINT_WINDOWS_DISABLE_THREAD_NAMING)
      // Requires SDL 2.0.5. Disables thread naming so that gdb works correctly
      // with the game.
-@@ -277,7 +290,7 @@ static point compute_drawable_dims()
+@@ -277,7 +289,7 @@ static point compute_drawable_dims()
      return point{ pw, ph };
  }
  
@@ -1019,7 +1031,7 @@ index a660043..e89cd96 100644
  // Present rect in drawable px: largest integer buffer multiple that fits
  // (absorbs SCALING_FACTOR + HiDPI), top-left, remainder border. A fractional
  // fit would grid the minimap. Inverted by window_to_display_buffer_coords.
-@@ -319,9 +332,12 @@ static bool terminal_glyphs_changed = false;
+@@ -319,9 +331,12 @@ static bool terminal_glyphs_changed = false;
  static bool rebuild_terminal_fonts( const point &cell, int point_size,
                                      const std::vector<font_config> &typefaces,
                                      const std::vector<font_config> &gui_typefaces, bool blending );
@@ -1033,7 +1045,7 @@ index a660043..e89cd96 100644
  // fonts.json typefaces and the FONT_BLENDING option, kept so the terminal fonts can be
  // rebuilt at a new cell size
  static font_loader android_fonts;
-@@ -396,6 +412,7 @@ void refresh_mouse_config()
+@@ -396,6 +411,7 @@ void refresh_mouse_config()
          return;
      }
  
@@ -1041,7 +1053,7 @@ index a660043..e89cd96 100644
      io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
      const std::string hide_mode = get_option<std::string>( "HIDE_CURSOR" );
      if( hide_mode == "show" ) {
-@@ -611,6 +628,62 @@ std::optional<atlas_bake_plan> resolve_atlas_bake_plan( const std::string &memor
+@@ -611,6 +627,62 @@ std::optional<atlas_bake_plan> resolve_atlas_bake_plan( const std::string &memor
                                      tint_shader );
  }
  
@@ -1104,7 +1116,7 @@ index a660043..e89cd96 100644
  //Registers, creates, and shows the Window!!
  static void WinCreate()
  {
-@@ -626,7 +699,7 @@ static void WinCreate()
+@@ -626,7 +698,7 @@ static void WinCreate()
      // Track desired fullscreen mode separately; applied after window creation
      FullscreenMode desired_fullscreen = FullscreenMode::windowed;
  
@@ -1113,7 +1125,7 @@ index a660043..e89cd96 100644
      if( get_option<std::string>( "FULLSCREEN" ) == "fullscreen" ) {
          desired_fullscreen = FullscreenMode::fullscreen_exclusive;
          fullscreen = true;
-@@ -650,6 +723,11 @@ static void WinCreate()
+@@ -650,6 +722,11 @@ static void WinCreate()
      // Without this, the game only displays in the top-left 1/4 of the window.
      window_flags = CATA_WINDOW_HIGH_DPI | CATA_WINDOW_MAXIMIZED;
  #endif
@@ -1125,7 +1137,7 @@ index a660043..e89cd96 100644
  
      int display = std::stoi( get_option<std::string>( "DISPLAY" ) );
      if( display < 0 || display >= GetNumVideoDisplays() ) {
-@@ -699,7 +777,17 @@ static void WinCreate()
+@@ -699,7 +776,17 @@ static void WinCreate()
          SetWindowFullscreen( ::window.get(), desired_fullscreen );
      }
  
@@ -1144,7 +1156,7 @@ index a660043..e89cd96 100644
      // On Android SDL seems janky in windowed mode so we're fullscreen all the time.
      // Fullscreen mode is now modified so it obeys terminal width/height, rather than
      // overwriting it with this calculation.
-@@ -714,7 +802,7 @@ static void WinCreate()
+@@ -714,7 +801,7 @@ static void WinCreate()
      pixel_format = SDL_GetWindowPixelFormat( ::window.get() );
      throwErrorIf( pixel_format == SDL_PIXELFORMAT_UNKNOWN, "SDL_GetWindowPixelFormat failed" );
  
@@ -1153,7 +1165,7 @@ index a660043..e89cd96 100644
      // The GPU renderer is the only one that supports SDL_SetGPURenderState.
      // Drive selection through SDL_HINT_RENDER_DRIVER (comma-list with
      // platform-appropriate fallbacks) rather than the saved RENDERER option,
-@@ -782,14 +870,14 @@ static void WinCreate()
+@@ -782,14 +869,14 @@ static void WinCreate()
      }
  
      detect_renderer_backend();
@@ -1170,7 +1182,7 @@ index a660043..e89cd96 100644
      // TODO: Not too sure why this works to make fullscreen on Android behave. :/
      if( desired_fullscreen != FullscreenMode::windowed
          || ( window_flags & CATA_WINDOW_MAXIMIZED ) ) {
-@@ -848,12 +936,14 @@ static const SDL_Color &color_as_sdl( const unsigned char color )
+@@ -848,12 +935,14 @@ static const SDL_Color &color_as_sdl( const unsigned char color )
      return windowsPalette[color];
  }
  
@@ -1186,7 +1198,7 @@ index a660043..e89cd96 100644
  // onNativeImeInsetsChanged and onNativeSafeAreaChanged fire from the Android UI
  // thread; refresh and CheckMessages read on the SDL game-loop thread. A seqlock
  // over per-field atomics hands the reader a torn-free snapshot lock-free; one
-@@ -1105,6 +1195,75 @@ static SDL_Rect get_android_render_rect( const int buffer_w, const int buffer_h
+@@ -1105,6 +1194,75 @@ static SDL_Rect get_android_render_rect( const int buffer_w, const int buffer_h
      return dstrect;
  }
  
@@ -1262,7 +1274,7 @@ index a660043..e89cd96 100644
  #endif
  
  static void draw_gamepad_radial_menu();
-@@ -1187,7 +1346,7 @@ void refresh_display()
+@@ -1187,7 +1345,7 @@ void refresh_display()
          }
      }
      ClearScreen();
@@ -1271,7 +1283,7 @@ index a660043..e89cd96 100644
      SDL_Rect dstrect = get_android_render_rect( TERMINAL_WIDTH * fontwidth,
                         TERMINAL_HEIGHT * fontheight );
      RenderCopy( renderer, display_buffer, NULL, &dstrect );
-@@ -1203,10 +1362,19 @@ void refresh_display()
+@@ -1203,10 +1361,19 @@ void refresh_display()
  #endif
  
  #if defined(__ANDROID__)
@@ -1291,7 +1303,7 @@ index a660043..e89cd96 100644
  #endif
      draw_gamepad_radial_menu();
      RenderPresent( renderer );
-@@ -3317,7 +3485,7 @@ void cata_tiles::draw_om( const point &dest, const tripoint_abs_omt &center_abs_
+@@ -3317,7 +3484,7 @@ void cata_tiles::draw_om( const point &dest, const tripoint_abs_omt &center_abs_
      }
      has_animated_tiles_ = false;
  
@@ -1300,7 +1312,7 @@ index a660043..e89cd96 100644
      // Attempted bugfix for Google Play crash - prevent divide-by-zero if no tile
      // width/height specified
      if( tile_width == 0 || tile_height == 0 ) {
-@@ -4638,10 +4806,32 @@ static bool rebuild_terminal_fonts( const point &cell, const int point_size,
+@@ -4638,10 +4805,32 @@ static bool rebuild_terminal_fonts( const point &cell, const int point_size,
  }
  
  // Refresh the window and drawable tracks from a new logical size, and the
@@ -1335,7 +1347,7 @@ index a660043..e89cd96 100644
      const bool logical_changed = w != WindowWidth || h != WindowHeight;
      WindowWidth = w;
      WindowHeight = h;
-@@ -4678,6 +4868,7 @@ static bool apply_resize_layout( int w, int h )
+@@ -4678,6 +4867,7 @@ static bool apply_resize_layout( int w, int h )
      }
      return logical_changed;
  #endif
@@ -1343,7 +1355,7 @@ index a660043..e89cd96 100644
  }
  
  void resize_term( const int cell_w, const int cell_h )
-@@ -4700,7 +4891,7 @@ void request_terminal_relayout()
+@@ -4700,7 +4890,7 @@ void request_terminal_relayout()
  void toggle_fullscreen_window()
  {
      // Can't enter fullscreen on Emscripten.
@@ -1352,7 +1364,7 @@ index a660043..e89cd96 100644
      return;
  #endif
  
-@@ -4729,7 +4920,7 @@ void toggle_fullscreen_window()
+@@ -4729,7 +4919,7 @@ void toggle_fullscreen_window()
      fullscreen = !fullscreen;
  }
  
@@ -1361,7 +1373,7 @@ index a660043..e89cd96 100644
  static float finger_down_x = -1.0f; // in pixels
  static float finger_down_y = -1.0f; // in pixels
  static float finger_curr_x = -1.0f; // in pixels
-@@ -4759,8 +4950,27 @@ static bool is_quick_shortcut_touch = false;
+@@ -4759,8 +4949,27 @@ static bool is_quick_shortcut_touch = false;
  static bool quick_shortcuts_toggle_handled = false;
  // the current finger repeat delay - will be somewhere between the min/max values depending on user input
  uint32_t finger_repeat_delay = 500;
@@ -1389,7 +1401,7 @@ index a660043..e89cd96 100644
  
  // SDL_FingerID is an opaque per-touch ID, not a 0-based index, so map raw
  // IDs to local slots 0/1/2 here.
-@@ -4819,6 +5029,7 @@ std::string get_quick_shortcut_name( const std::string &category )
+@@ -4819,6 +5028,7 @@ std::string get_quick_shortcut_name( const std::string &category )
  
  float android_get_display_density()
  {
@@ -1397,7 +1409,7 @@ index a660043..e89cd96 100644
      JNIEnv *env = ( JNIEnv * )GetAndroidJNIEnv();
      jobject activity = ( jobject )GetAndroidActivity();
      jclass clazz( env->GetObjectClass( activity ) );
-@@ -4827,6 +5038,21 @@ float android_get_display_density()
+@@ -4827,6 +5037,21 @@ float android_get_display_density()
      env->DeleteLocalRef( activity );
      env->DeleteLocalRef( clazz );
      return ans;
@@ -1419,7 +1431,7 @@ index a660043..e89cd96 100644
  }
  
  // Drawn height of the quick shortcut strip, in window pixels.
-@@ -4849,8 +5075,8 @@ static void get_quick_shortcut_dimensions( quick_shortcuts_t &qsl, float &border
+@@ -4849,8 +5074,8 @@ static void get_quick_shortcut_dimensions( quick_shortcuts_t &qsl, float &border
      float min_width = std::floor( screen_density_scale * std::min(
                                        get_option<int>( "ANDROID_SHORTCUT_WIDTH_MIN" ),
                                        get_option<int>( "ANDROID_SHORTCUT_WIDTH_MAX" ) ) );
@@ -1430,7 +1442,7 @@ index a660043..e89cd96 100644
      if( width * qsl.size() > usable_window_width ) {
          width *= usable_window_width / ( width * qsl.size() );
          if( width < min_width ) {
-@@ -4880,14 +5106,16 @@ static quick_shortcut_layout get_quick_shortcut_layout( quick_shortcuts_t &qsl )
+@@ -4880,14 +5105,16 @@ static quick_shortcut_layout get_quick_shortcut_layout( quick_shortcuts_t &qsl )
      quick_shortcut_layout layout;
      get_quick_shortcut_dimensions( qsl, layout.border, layout.width, layout.height );
      layout.right = get_option<std::string>( "ANDROID_SHORTCUT_POSITION" ) == "right";
@@ -1449,7 +1461,7 @@ index a660043..e89cd96 100644
          const std::optional<SDL_Rect> ime_frame = android_visible_ime_frame();
          if( ime_frame ) {
              layout.top = ime_frame->y + ime_frame->h - layout.height;
-@@ -4900,6 +5128,13 @@ static quick_shortcut_layout get_quick_shortcut_layout( quick_shortcuts_t &qsl )
+@@ -4900,6 +5127,13 @@ static quick_shortcut_layout get_quick_shortcut_layout( quick_shortcuts_t &qsl )
                  layout.top = free_top;
              }
          }
@@ -1463,7 +1475,7 @@ index a660043..e89cd96 100644
      }
      layout.per_row = layout.width > 0.0f ? static_cast<int>( usable_width / layout.width ) : 0;
      layout.count = std::min( static_cast<int>( qsl.size() ), layout.per_row * rows );
-@@ -4911,7 +5146,9 @@ static SDL_FRect quick_shortcut_cell( const quick_shortcut_layout &layout, const
+@@ -4911,7 +5145,9 @@ static SDL_FRect quick_shortcut_cell( const quick_shortcut_layout &layout, const
  {
      const int col = i % layout.per_row;
      const int row = i / layout.per_row;
@@ -1474,7 +1486,7 @@ index a660043..e89cd96 100644
      return SDL_FRect{ x, layout.top + row * layout.height, layout.width, layout.height };
  }
  
-@@ -5175,6 +5412,7 @@ static void cancel_touch()
+@@ -5175,6 +5411,7 @@ static void cancel_touch()
  // until the first report arrives.
  static bool android_keyboard_occludes_shortcuts()
  {
@@ -1482,7 +1494,7 @@ index a660043..e89cd96 100644
      if( !IsTextInputActive( ::window.get() ) ) {
          return false;
      }
-@@ -5186,6 +5424,11 @@ static bool android_keyboard_occludes_shortcuts()
+@@ -5186,6 +5423,11 @@ static bool android_keyboard_occludes_shortcuts()
          return true;
      }
      return visible && frame.h > 0 && !android_shortcuts_above_keyboard();
@@ -1494,7 +1506,7 @@ index a660043..e89cd96 100644
  }
  
  // Draw quick shortcuts on top of the game view
-@@ -5251,6 +5494,7 @@ void draw_quick_shortcuts()
+@@ -5251,6 +5493,7 @@ void draw_quick_shortcuts()
      const float width = layout.width;
      const float height = layout.height;
      input_event *hovered_quick_shortcut = get_quick_shortcut_under_finger();
@@ -1502,7 +1514,7 @@ index a660043..e89cd96 100644
      SDL_Rect rect;
      bool hovered, show_hint;
      int i = 0;
-@@ -5318,7 +5562,8 @@ void draw_quick_shortcuts()
+@@ -5318,7 +5561,8 @@ void draw_quick_shortcuts()
  
              if( show_hint ) {
                  // draw a backdrop for the hint text
@@ -1512,7 +1524,7 @@ index a660043..e89cd96 100644
                  SetRenderDrawColor( renderer, 0, 0, 0,
                                      get_option<int>( "ANDROID_SHORTCUT_OPACITY_BG" ) * 0.01f * 255.0f );
                  RenderFillRect( renderer, &rect );
-@@ -5347,13 +5592,14 @@ void draw_quick_shortcuts()
+@@ -5347,13 +5591,14 @@ void draw_quick_shortcuts()
                  hint_text = remove_color_tags( hint_text );
                  const float safe_margin = 0.9f;
                  int hint_length = utf8_width( hint_text );
@@ -1531,7 +1543,7 @@ index a660043..e89cd96 100644
                  font->OutputChar( renderer, hint_text, point( text_x + 1, text_y + 1 ), 0,
                                    get_option<int>( "ANDROID_SHORTCUT_OPACITY_SHADOW" ) * 0.01f );
                  font->OutputChar( renderer, hint_text, point( text_x, text_y ),
-@@ -5490,6 +5736,7 @@ void draw_virtual_joystick()
+@@ -5490,6 +5735,7 @@ void draw_virtual_joystick()
      using touch_joystick::direction;
      std::vector<direction> slices = { direction::right, direction::down, direction::left, direction::up };
      if( straight_width < 90.0f ) {
@@ -1539,7 +1551,7 @@ index a660043..e89cd96 100644
          slices.insert( slices.end(), { direction::down_right, direction::down_left, direction::up_left,
                                         direction::up_right
                                       } );
-@@ -5541,7 +5788,7 @@ static void draw_gamepad_radial_menu()
+@@ -5541,7 +5787,7 @@ static void draw_gamepad_radial_menu()
          return;
      }
  
@@ -1548,7 +1560,7 @@ index a660043..e89cd96 100644
      if( !ctxt ) {
          return;
      }
-@@ -5611,7 +5858,7 @@ static void draw_gamepad_radial_menu()
+@@ -5611,7 +5857,7 @@ static void draw_gamepad_radial_menu()
      RenderSetScale( renderer, 1.0f, 1.0f );
  }
  
@@ -1557,7 +1569,7 @@ index a660043..e89cd96 100644
  void update_finger_repeat_delay()
  {
      const float t = android_touch_speed();
-@@ -5716,6 +5963,7 @@ void handle_finger_input( uint32_t ticks )
+@@ -5716,6 +5962,7 @@ void handle_finger_input( uint32_t ticks )
  
  bool android_is_hardware_keyboard_available()
  {
@@ -1565,7 +1577,7 @@ index a660043..e89cd96 100644
      JNIEnv *env = ( JNIEnv * )GetAndroidJNIEnv();
      jobject activity = ( jobject )GetAndroidActivity();
      jclass clazz( env->GetObjectClass( activity ) );
-@@ -5724,12 +5972,16 @@ bool android_is_hardware_keyboard_available()
+@@ -5724,12 +5971,16 @@ bool android_is_hardware_keyboard_available()
      env->DeleteLocalRef( activity );
      env->DeleteLocalRef( clazz );
      return ans;
@@ -1582,7 +1594,7 @@ index a660043..e89cd96 100644
          JNIEnv *env = ( JNIEnv * )GetAndroidJNIEnv();
          jobject activity = ( jobject )GetAndroidActivity();
          jclass clazz( env->GetObjectClass( activity ) );
-@@ -5737,11 +5989,14 @@ void android_vibrate()
+@@ -5737,11 +5988,14 @@ void android_vibrate()
          env->CallVoidMethod( activity, method_id, vibration_ms );
          env->DeleteLocalRef( activity );
          env->DeleteLocalRef( clazz );
@@ -1598,7 +1610,7 @@ index a660043..e89cd96 100644
  static bool window_focus = false;
  static bool text_input_active_when_regaining_focus = false;
  #endif
-@@ -5756,7 +6011,7 @@ static void focus_aware_start_text_input()
+@@ -5756,7 +6010,7 @@ static void focus_aware_start_text_input()
      if( IsTextInputActive( ::window.get() ) ) {
          return;
      }
@@ -1607,7 +1619,7 @@ index a660043..e89cd96 100644
      StartTextInput( ::window.get() );
  #else
      if( window_focus ) {
-@@ -5769,7 +6024,7 @@ static void focus_aware_start_text_input()
+@@ -5769,7 +6023,7 @@ static void focus_aware_start_text_input()
  
  static void focus_aware_stop_text_input()
  {
@@ -1616,7 +1628,7 @@ index a660043..e89cd96 100644
      StopTextInput( ::window.get() );
  #else
      if( window_focus ) {
-@@ -5797,6 +6052,18 @@ static void CheckMessages()
+@@ -5797,6 +6051,18 @@ static void CheckMessages()
          ui_manager::redraw_invalidated();
      }
  
@@ -1635,7 +1647,7 @@ index a660043..e89cd96 100644
  #if defined(__ANDROID__)
      static uint32_t last_seen_visible_frame_seq = 0;
      const uint32_t cur_visible_frame_seq = visible_frame_inbox.even_sequence();
-@@ -5821,6 +6088,7 @@ static void CheckMessages()
+@@ -5821,6 +6087,7 @@ static void CheckMessages()
          // auto text size follows the outer window
          request_terminal_relayout();
      }
@@ -1643,7 +1655,7 @@ index a660043..e89cd96 100644
  
      uint32_t ticks = GetTicks();
  
-@@ -5829,6 +6097,25 @@ static void CheckMessages()
+@@ -5829,6 +6096,25 @@ static void CheckMessages()
          focus_aware_start_text_input();
      }
  
@@ -1669,7 +1681,7 @@ index a660043..e89cd96 100644
      // Make sure the SDL surface view is visible, otherwise the "Z" loading screen is visible.
      if( needs_sdl_surface_visibility_refresh ) {
          needs_sdl_surface_visibility_refresh = false;
-@@ -5842,9 +6129,10 @@ static void CheckMessages()
+@@ -5842,9 +6128,10 @@ static void CheckMessages()
          env->DeleteLocalRef( activity );
          env->DeleteLocalRef( clazz );
      }
@@ -1681,7 +1693,7 @@ index a660043..e89cd96 100644
      // a context pushed before its actions are registered, as at the start of a game
      // turn, isn't an input mode yet; switching to it would flash a four-way joystick
      if( new_input_context &&
-@@ -5867,6 +6155,9 @@ static void CheckMessages()
+@@ -5867,6 +6154,9 @@ static void CheckMessages()
      bool is_default_mode = touch_input_context.get_category() == "DEFAULTMODE";
      quick_shortcuts_t &qsl = quick_shortcuts_map[get_quick_shortcut_name(
                                   touch_input_context.get_category() )];
@@ -1691,7 +1703,7 @@ index a660043..e89cd96 100644
  
      // Don't do this logic if we already need an update, otherwise we're likely to overload the game with too much input on hold repeat events
      if( !needupdate ) {
-@@ -6062,18 +6353,7 @@ static void CheckMessages()
+@@ -6062,18 +6352,7 @@ static void CheckMessages()
                  android_request_repaint();
                  refresh_display();
  
@@ -1711,7 +1723,7 @@ index a660043..e89cd96 100644
              }
          }
  
-@@ -6127,7 +6407,6 @@ static void CheckMessages()
+@@ -6127,7 +6406,6 @@ static void CheckMessages()
  #endif
  
      last_input = input_event();
@@ -1719,7 +1731,7 @@ index a660043..e89cd96 100644
      using cata::options::mouse;
  
      int imgui_buf_w = 0;
-@@ -6145,7 +6424,7 @@ static void CheckMessages()
+@@ -6145,7 +6423,7 @@ static void CheckMessages()
          // IsWindowEvent/GetWindowEventID normalize across versions.
          if( IsWindowEvent( ev ) ) {
              switch( GetWindowEventID( ev ) ) {
@@ -1728,7 +1740,7 @@ index a660043..e89cd96 100644
                  // SDL will send a focus lost event whenever the app loses focus (eg. lock screen, switch app focus etc.)
                  // If we detect it and the game seems in a saveable state, try and do a quicksave. This is a bit dodgy
                  // as the player could be ANYWHERE doing ANYTHING (a sub-menu, interacting with an NPC/computer etc.)
-@@ -6159,6 +6438,9 @@ static void CheckMessages()
+@@ -6159,6 +6437,9 @@ static void CheckMessages()
                          !std::uncaught_exception() ) {
                          g->quicksave();
                      }
@@ -1738,7 +1750,7 @@ index a660043..e89cd96 100644
                      break;
                      // Window resize (including android screen rotation) is handled by
                      // the event watch, which bumps the resize epoch for the next drain.
-@@ -6194,23 +6476,36 @@ static void CheckMessages()
+@@ -6194,23 +6475,36 @@ static void CheckMessages()
                      needupdate = true;
                      break;
                  case CATA_WINDOWEVENT_SAFE_AREA_CHANGED:
@@ -1777,7 +1789,7 @@ index a660043..e89cd96 100644
  #endif
                  default:
                      break;
-@@ -6231,7 +6526,7 @@ static void CheckMessages()
+@@ -6231,7 +6525,7 @@ static void CheckMessages()
                          HideCursor();
                      }
                      keyboard_mode mode = keyboard_mode::keychar;
@@ -1786,7 +1798,7 @@ index a660043..e89cd96 100644
                      if( !IsTextInputActive( ::window.get() ) ) {
                          mode = keyboard_mode::keycode;
                      }
-@@ -6245,7 +6540,7 @@ static void CheckMessages()
+@@ -6245,7 +6539,7 @@ static void CheckMessages()
                              // key was handled
                          } else {
                              last_input = input_event( lc, input_event_t::keyboard_char );
@@ -1795,7 +1807,7 @@ index a660043..e89cd96 100644
                              if( !android_is_hardware_keyboard_available() ) {
                                  if( !android_wants_text_input( touch_input_context ) ) {
                                      if( get_option<bool>( "ANDROID_AUTO_KEYBOARD" ) ) {
-@@ -6295,7 +6590,7 @@ static void CheckMessages()
+@@ -6295,7 +6589,7 @@ static void CheckMessages()
                      }
  #endif
                      keyboard_mode mode = keyboard_mode::keychar;
@@ -1804,7 +1816,7 @@ index a660043..e89cd96 100644
                      if( !IsTextInputActive( ::window.get() ) ) {
                          mode = keyboard_mode::keycode;
                      }
-@@ -6319,7 +6614,7 @@ static void CheckMessages()
+@@ -6319,7 +6613,7 @@ static void CheckMessages()
                          if( strlen( ev.text.text ) > 0 ) {
                              const unsigned lc = UTF8_getch( ev.text.text );
                              last_input = input_event( lc, input_event_t::keyboard_char );
@@ -1813,7 +1825,7 @@ index a660043..e89cd96 100644
                              if( !android_is_hardware_keyboard_available() ) {
                                  if( !android_wants_text_input( touch_input_context ) ) {
                                      if( get_option<bool>( "ANDROID_AUTO_KEYBOARD" ) ) {
-@@ -6466,7 +6761,7 @@ static void CheckMessages()
+@@ -6466,7 +6760,7 @@ static void CheckMessages()
                      }
                      break;
  
@@ -1822,7 +1834,7 @@ index a660043..e89cd96 100644
                  case CATA_FINGERMOTION: {
                      const int slot = finger_slot_for( GetFingerID( ev ), false );
                      if( slot == 0 ) {
-@@ -6644,18 +6939,7 @@ static void CheckMessages()
+@@ -6644,18 +6938,7 @@ static void CheckMessages()
  
                                          quick_shortcuts_toggle_handled = true;
  
@@ -1842,7 +1854,7 @@ index a660043..e89cd96 100644
                                      } else {
                                          last_input = input_event( three_tap_key, input_event_t::keyboard_char );
                                      }
-@@ -6792,7 +7076,7 @@ static void init_term_size_and_scaling_factor()
+@@ -6792,7 +7075,7 @@ static void init_term_size_and_scaling_factor()
      point terminal( get_option<int>( "TERMINAL_X" ), get_option<int>( "TERMINAL_Y" ) );
  #endif
  
@@ -1851,7 +1863,7 @@ index a660043..e89cd96 100644
  
      if( get_option<std::string>( "SCALING_FACTOR" ) == "2" ) {
          scaling_factor = 2;
-@@ -7148,7 +7432,7 @@ input_event input_manager::get_input_event( const keyboard_mode preferred_keyboa
+@@ -7148,7 +7431,7 @@ input_event input_manager::get_input_event( const keyboard_mode preferred_keyboa
      SDL_PumpEvents();
      drain_renderer_recovery();
  
@@ -1860,7 +1872,7 @@ index a660043..e89cd96 100644
      if( actual_keyboard_mode( preferred_keyboard_mode ) == keyboard_mode::keychar ) {
          focus_aware_start_text_input();
      } else {
-@@ -7239,13 +7523,16 @@ input_event input_manager::get_input_event( const keyboard_mode preferred_keyboa
+@@ -7239,13 +7522,16 @@ input_event input_manager::get_input_event( const keyboard_mode preferred_keyboa
          last_input.mouse_pos.x = buf_pt.x;
          last_input.mouse_pos.y = buf_pt.y;
      }

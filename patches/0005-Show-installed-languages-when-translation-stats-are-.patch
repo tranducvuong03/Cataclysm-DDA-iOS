@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: cataclysm-ios <cataclysm-ios@localhost>
+Date: Sat, 31 Oct 2026 20:40:00 +0700
+Subject: [PATCH] Show installed languages when translation stats are missing
+
+The experimental source can ship without generated language statistics.
+Do not hide installed translation catalogs from the language selector when
+their statistics are unavailable.
+---
+ src/options.cpp | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src/options.cpp b/src/options.cpp
+index 09c9996..3eca8fd 100644
+--- a/src/options.cpp
++++ b/src/options.cpp
+@@ -1460,7 +1460,8 @@ std::vector<options_manager::id_and_option> options_manager::get_lang_options()
+         if( const lang_stats *stats = lang_stats_for( pair.first ) ) {
+             return stats->percent_translated() > 0.0;
+         }
+-        return false;
++        // An installed catalog is selectable even if release stats are absent.
++        return true;
+     } );
+     return options;
+ }
