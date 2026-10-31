@@ -20,7 +20,7 @@ Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
  src/handle_action.cpp        |   4 +-
  src/input.cpp                |   6 +-
  src/input_context.cpp        |   9 +-
- src/input_context.h          |  16 +-
+ src/input_context.h          |  20 ++++----
  src/input_enums.h            |   2 +-
  src/inventory.cpp            |   3 -
  src/inventory_ui.cpp         |   8 +-
@@ -38,7 +38,7 @@ Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
  src/string_input_popup.cpp   |   4 +-
  src/uilist.cpp               |   2 +-
  src/worldfactory.cpp         |   4 +-
- 31 files changed, 533 insertions(+), 142 deletions(-)
+ 31 files changed, 535 insertions(+), 144 deletions(-)
 
 diff --git a/src/advanced_inv.cpp b/src/advanced_inv.cpp
 index 0156761..2bcdf0f 100644
@@ -380,6 +380,20 @@ index fc02238..d2da537 100644
  #endif
                  }
                  scoped_activation( const scoped_activation & ) = delete;
+@@ -145,7 +145,7 @@ class input_context
+             // suppress the conservative use-after-move alert on the per-member chain.
+             // NOLINTBEGIN(bugprone-use-after-move)
+             // Don't touch the handle
+-#if defined(__ANDROID__)
++#if defined(__ANDROID__) || defined(CATA_IOS)
+             registered_manual_keys = std::forward<Rhs>( other ).registered_manual_keys;
+ #endif
+             registered_actions = std::forward<Rhs>( other ).registered_actions;
+@@ -168,3 +168,3 @@ class input_context
+-#if defined(__ANDROID__)
++#if defined(__ANDROID__) || defined(CATA_IOS)
+         // HACK: hack to allow creating manual keybindings for getch() instances, uilists etc. that don't use an input_context outside of the Android version
+         struct manual_key {
 @@ -489,7 +489,7 @@ class input_context
          input_event first_unassigned_hotkey( const hotkey_queue &queue ) const;
          input_event next_unassigned_hotkey( const hotkey_queue &queue, const input_event &prev ) const;
