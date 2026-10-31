@@ -7,6 +7,8 @@ on:
       - port/cdda-experimental-2026-10-30-2308
   pull_request:
   workflow_dispatch:
+  schedule:
+    - cron: "*/30 * * * *"
 
 # A full build takes a while; let a running build finish (and report) and
 # queue the newest push behind it rather than cancelling it.
@@ -18,7 +20,28 @@ permissions:
   contents: read
 
 jobs:
+  check_upstream:
+    if: github.event_name == 'schedule'
+    name: Check for a new upstream experimental release
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.check.outputs.should_build }}
+      upstream_ref: ${{ steps.check.outputs.upstream_ref }}
+      upstream_commit: ${{ steps.check.outputs.upstream_commit }}
+      translations_sha256: ${{ steps.check.outputs.translations_sha256 }}
+      graphics_sha256: ${{ steps.check.outputs.graphics_sha256 }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check upstream release
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/check-upstream-release.sh
+
   build:
+    needs: check_upstream
+    if: always() && (github.event_name != 'schedule' || needs.check_upstream.outputs.should_build == 'true')
     name: ${{ matrix.name }}
     runs-on: macos-15
     timeout-minutes: 300
@@ -39,6 +62,39 @@ jobs:
       CCACHE_COMPRESS: "1"
     steps:
       - uses: actions/checkout@v4
+
+      - name: Pin upstream release for this scheduled build
+        if: github.event_name == 'schedule'
+        env:
+          UPSTREAM_REF: ${{ needs.check_upstream.outputs.upstream_ref }}
+          UPSTREAM_COMMIT: ${{ needs.check_upstream.outputs.upstream_commit }}
+          TRANSLATIONS_SHA256: ${{ needs.check_upstream.outputs.translations_sha256 }}
+          GRAPHICS_SHA256: ${{ needs.check_upstream.outputs.graphics_sha256 }}
+        run: |
+          python3 - "$GITHUB_WORKSPACE/cdda.env" <<'PY'
+          import os
+          import re
+          import sys
+          from pathlib import Path
+
+          path = Path(sys.argv[1])
+          values = {
+              "CDDA_REF": (os.environ["UPSTREAM_REF"], r"cdda-experimental-\d{4}-\d{2}-\d{2}-\d{4}"),
+              "CDDA_COMMIT": (os.environ["UPSTREAM_COMMIT"], r"[0-9a-f]{40}"),
+              "CDDA_VERSION_STRING": (os.environ["UPSTREAM_REF"], r"cdda-experimental-\d{4}-\d{2}-\d{2}-\d{4}"),
+              "CDDA_TRANSLATIONS_SHA256": (os.environ["TRANSLATIONS_SHA256"], r"[0-9a-f]{64}"),
+              "CDDA_GRAPHICS_SHA256": (os.environ["GRAPHICS_SHA256"], r"[0-9a-f]{64}"),
+          }
+          text = path.read_text()
+          for key, (value, pattern) in values.items():
+              if re.fullmatch(pattern, value) is None:
+                  raise SystemExit(f"invalid value for {key}")
+              expression = re.compile(rf"^{key}=.*$", re.MULTILINE)
+              text, count = expression.subn(f"{key}={value}", text)
+              if count != 1:
+                  raise SystemExit(f"expected exactly one {key} entry in cdda.env")
+          path.write_text(text)
+          PY
 
       - name: Show toolchain
         run: |
@@ -75,7 +131,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: build/graphics
-          key: cdda-graphics-${{ hashFiles('cdda.env') }}
+          key: cdda-graphics-${{ needs.check_upstream.outputs.upstream_ref || hashFiles('cdda.env') }}
 
       - name: Install official graphics assets
         run: bash scripts/fetch-graphics.sh
@@ -110,7 +166,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: build/translations
-          key: cdda-translations-${{ hashFiles('cdda.env') }}
+          key: cdda-translations-${{ needs.check_upstream.outputs.upstream_ref || hashFiles('cdda.env') }}
 
       - name: Compile translations
         run: scripts/compile-translations.sh

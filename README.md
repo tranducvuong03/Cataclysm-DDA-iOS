@@ -11,7 +11,7 @@ this repository holds only the iOS build system, a small patch series and the iO
 
 | | |
 |---|---|
-| Game version | **cdda-experimental-2026-10-30-2308** (upstream tag [`cdda-experimental-2026-10-30-2308`](https://github.com/CleverRaven/Cataclysm-DDA/tree/cdda-experimental-2026-10-30-2308)) |
+| Game version | Latest upstream `cdda-experimental-*` release with a successful iOS build ([upstream releases](https://github.com/CleverRaven/Cataclysm-DDA/releases)) |
 | Devices | iPhone and iPad, arm64, iOS/iPadOS 15 or later, landscape |
 | Graphics | Tilesets and ASCII, all upstream tilesets included |
 | Sound | CC-Sounds effects and music bundled (SDL3_mixer) |
@@ -142,12 +142,18 @@ then be reused for later game versions. Bundling CC-Sounds adds about 138 MB to 
 To build in GitHub Actions instead, commit and push your changes to the configured port branch.
 The [iOS workflow](https://github.com/tranducvuong03/Cataclysm-IOS-Experimental/actions/workflows/ios.yml)
 builds the device IPA and runs iPhone and iPad Simulator smoke tests. After the device IPA is
-packaged, the workflow creates a regular GitHub Release and uploads the IPA as its only asset.
+packaged, the workflow creates a GitHub prerelease and uploads the IPA as its only asset.
 Each build gets a unique internal tag (`ios-build-<run-number>`) and a clearly named
 `Cataclysm-iOS-...-unsigned.ipa` file; previous releases are kept. GitHub automatically provides
 source archives for release tags, but they are not uploaded by this workflow and are not needed
 to install the IPA. Check the workflow's Simulator test results before installing.
 
+The workflow also checks the upstream releases every 30 minutes for a new
+`cdda-experimental-YYYY-MM-DD-HHMM` release. Once its official translation and graphics assets
+and SHA-256 digests are available, it builds that exact version, runs the same smoke tests, and
+publishes a prerelease titled with the upstream version. The uploaded IPA filename ends in
+`-unsigned.ipa`. Existing upstream versions are not built again. If an upstream change is
+incompatible with the iOS patches or fails a build or smoke test, no IPA release is published.
 ### Change the upstream version and build a new IPA
 
 The upstream tag, exact source commit, displayed game version, translation checksum, and graphics
