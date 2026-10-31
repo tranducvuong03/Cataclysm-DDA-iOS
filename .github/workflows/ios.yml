@@ -259,3 +259,57 @@ jobs:
               --notes "$notes" \
               --prerelease
           fi
+
+  update-upstream-pin:
+    needs:
+      - check_upstream
+      - build
+    if: github.event_name == 'schedule' && needs.check_upstream.outputs.should_build == 'true'
+    name: Update the pinned upstream version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update cdda.env
+        env:
+          UPSTREAM_REF: ${{ needs.check_upstream.outputs.upstream_ref }}
+          UPSTREAM_COMMIT: ${{ needs.check_upstream.outputs.upstream_commit }}
+          TRANSLATIONS_SHA256: ${{ needs.check_upstream.outputs.translations_sha256 }}
+          GRAPHICS_SHA256: ${{ needs.check_upstream.outputs.graphics_sha256 }}
+        run: |
+          python3 - "$GITHUB_WORKSPACE/cdda.env" <<'PY'
+          import os
+          import re
+          import sys
+          from pathlib import Path
+
+          path = Path(sys.argv[1])
+          values = {
+              "CDDA_REF": os.environ["UPSTREAM_REF"],
+              "CDDA_COMMIT": os.environ["UPSTREAM_COMMIT"],
+              "CDDA_VERSION_STRING": os.environ["UPSTREAM_REF"],
+              "CDDA_TRANSLATIONS_SHA256": os.environ["TRANSLATIONS_SHA256"],
+              "CDDA_GRAPHICS_SHA256": os.environ["GRAPHICS_SHA256"],
+          }
+          text = path.read_text()
+          for key, value in values.items():
+              expression = re.compile(rf"^{key}=.*$", re.MULTILINE)
+              text, count = expression.subn(f"{key}={value}", text)
+              if count != 1:
+                  raise SystemExit(f"expected exactly one {key} entry in cdda.env")
+          path.write_text(text)
+          PY
+
+      - name: Commit updated upstream pin
+        run: |
+          if git diff --quiet -- cdda.env; then
+            echo "cdda.env already pins this upstream release."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add cdda.env
+          git commit -m "Pin upstream ${{ needs.check_upstream.outputs.upstream_ref }} after successful iOS build"
+          git push origin HEAD:main
