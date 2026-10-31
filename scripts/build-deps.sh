@@ -92,9 +92,17 @@ build_one() {
 for platform in "${platforms[@]}"; do
     mkdir -p "$BUILD/$platform"
     prefix="$INSTALL/$platform"
+    audio_options=(
+        -DSDL_SHARED=OFF
+        -DSDL_STATIC=ON
+        -DSDL_TEST_LIBRARY=OFF
+        -DSDL_INSTALL=ON
+    )
+    if [[ "$platform" == "iphonesimulator" ]]; then
+        audio_options+=(-DSDL_DUMMYAUDIO=ON)
+    fi
 
-    build_one "$platform" SDL3 "$SDL3_SRC" \
-        -DSDL_SHARED=OFF -DSDL_STATIC=ON -DSDL_TEST_LIBRARY=OFF -DSDL_INSTALL=ON
+    build_one "$platform" SDL3 "$SDL3_SRC" "${audio_options[@]}"
 
     build_one "$platform" SDL3_ttf "$TTF_SRC" \
         -DSDLTTF_VENDORED=ON -DSDLTTF_HARFBUZZ=ON -DSDLTTF_PLUTOSVG=OFF -DSDLTTF_INSTALL=ON \
