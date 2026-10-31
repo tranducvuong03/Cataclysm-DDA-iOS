@@ -53,6 +53,23 @@ jobs:
       - name: Fetch Cataclysm source
         run: scripts/fetch-cdda.sh
 
+      - name: Restore CC-Sounds archive
+        id: soundpack-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: build/soundpack
+          key: cdda-soundpack-${{ hashFiles('soundpack.env') }}
+
+      - name: Install CC-Sounds soundpack
+        run: bash scripts/fetch-soundpack.sh
+
+      - name: Save CC-Sounds archive
+        if: matrix.platform == 'iphoneos' && steps.soundpack-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: build/soundpack
+          key: ${{ steps.soundpack-cache.outputs.cache-primary-key }}
+
       - name: Restore upstream graphics archive
         id: graphics-cache
         uses: actions/cache/restore@v4
