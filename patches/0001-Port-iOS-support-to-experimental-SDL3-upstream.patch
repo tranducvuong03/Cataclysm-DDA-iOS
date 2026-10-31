@@ -557,7 +557,7 @@ index a5f96b9..c896ee6 100644
      char **argv = __argv;
 -#elif defined(__ANDROID__)
 +#elif defined(__ANDROID__) || defined(CATA_IOS)
-+// SDL's platform entry point (SDL2main) calls this once the app is running.
++// SDL's platform entry point calls this once the app is running.
  extern "C" int SDL_main( int argc, char **argv ) {
  #else
  int main( int argc, const char *argv[] )

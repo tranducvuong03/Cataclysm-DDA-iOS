@@ -24,6 +24,7 @@ pkg_check_modules(SDL REQUIRED IMPORTED_TARGET sdl3 SDL3_ttf SDL3_image SDL3_mix
 file(GLOB CDDA_SOURCES CONFIGURE_DEPENDS "${SRC}/*.cpp")
 file(GLOB THIRD_PARTY_SOURCES CONFIGURE_DEPENDS
     "${SRC}/third-party/flatbuffers/*.cpp"
+    "${SRC}/third-party/fmt/*.cc"
     "${SRC}/third-party/zstd/common/*.c"
     "${SRC}/third-party/zstd/compress/*.c"
     "${SRC}/third-party/zstd/decompress/*.c"
