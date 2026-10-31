@@ -31,7 +31,7 @@ count_po_catalogs() {
 
 mkdir -p "$CDDA/lang/po"
 po_count="$(count_po_catalogs "$CDDA/lang/po")"
-if [[ "$po_count" == 0 ]]; then
+if [[ "$po_count" == 0 || ! -s "$CDDA/lang/po/vi.po" ]]; then
     if [[ -z "${CDDA_TRANSLATIONS_SHA256:-}" ]]; then
         echo "error: CDDA_TRANSLATIONS_SHA256 is not set in cdda.env" >&2
         exit 1
@@ -55,8 +55,8 @@ if [[ "$po_count" == 0 ]]; then
     trap 'rm -rf "$extracted"' EXIT
     tar -xzf "$archive" -C "$extracted" lang/po data/credits data/motd
     po_count="$(count_po_catalogs "$extracted/lang/po")"
-    if [[ "$po_count" == 0 ]]; then
-        echo "error: official translation archive contains no .po catalogs" >&2
+    if [[ "$po_count" == 0 || ! -s "$extracted/lang/po/vi.po" ]]; then
+        echo "error: official translation archive has no usable Vietnamese catalog (lang/po/vi.po)" >&2
         exit 1
     fi
 
@@ -68,7 +68,18 @@ fi
 
 cd "$CDDA"
 if (( $# )); then
-    sh lang/compile_mo.sh "$@" >/dev/null
+    languages=( "$@" )
+    has_vietnamese=0
+    for language in "${languages[@]}"; do
+        if [[ "$language" == vi ]]; then
+            has_vietnamese=1
+            break
+        fi
+    done
+    if (( ! has_vietnamese )) && [[ "${languages[0]}" != all ]]; then
+        languages=( vi "${languages[@]}" )
+    fi
+    sh lang/compile_mo.sh "${languages[@]}" >/dev/null
 else
     sh lang/compile_mo.sh all >/dev/null
 fi
@@ -76,6 +87,10 @@ fi
 compiled_count="$(find lang/mo -type f -path '*/LC_MESSAGES/cataclysm-dda.mo' ! -path '*/placeholder/*' | wc -l | tr -d '[:space:]')"
 if [[ "$compiled_count" == 0 ]]; then
     echo "error: no Cataclysm translation catalogs were compiled" >&2
+    exit 1
+fi
+if [[ ! -s lang/mo/vi/LC_MESSAGES/cataclysm-dda.mo ]]; then
+    echo "error: Vietnamese catalog was not compiled to lang/mo/vi/LC_MESSAGES/cataclysm-dda.mo" >&2
     exit 1
 fi
 echo "==> Compiled $compiled_count translation(s) into $CDDA/lang/mo"

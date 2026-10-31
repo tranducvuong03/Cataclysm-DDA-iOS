@@ -9,16 +9,26 @@ set -eu
 CDDA="$1"
 DEST="${TARGET_BUILD_DIR:?not run from Xcode}/${CONTENTS_FOLDER_PATH:?not run from Xcode}"
 
+if [ ! -d "$CDDA/data/json" ]; then
+    echo "error: Cataclysm data is missing from $CDDA" >&2
+    exit 1
+fi
+if [ ! -s "$CDDA/gfx/MShockXotto+/tileset.txt" ]; then
+    echo "error: official graphical tilesets are missing; run scripts/fetch-graphics.sh" >&2
+    exit 1
+fi
+if [ ! -s "$CDDA/lang/mo/vi/LC_MESSAGES/cataclysm-dda.mo" ]; then
+    echo "error: Vietnamese translation is missing; run scripts/compile-translations.sh" >&2
+    exit 1
+fi
+
 rsync -a --delete \
     --exclude CMakeLists.txt --exclude application_manifest.xml \
     --exclude cataicon.ico --exclude xdg --exclude screenshots --exclude cache \
     "$CDDA/data/" "$DEST/data/"
 rsync -a --delete --exclude CMakeLists.txt "$CDDA/gfx/" "$DEST/gfx/"
 
-# Compiled translations, if scripts/compile-translations.sh was run.
-if [ -d "$CDDA/lang/mo" ]; then
-    mkdir -p "$DEST/lang"
-    rsync -a --delete "$CDDA/lang/mo/" "$DEST/lang/mo/"
-fi
+mkdir -p "$DEST/lang"
+rsync -a --delete "$CDDA/lang/mo/" "$DEST/lang/mo/"
 
 echo "Copied game data into $DEST"

@@ -178,6 +178,10 @@ cat "$OUT/config/debug.log" 2>/dev/null | head -n 150 || echo "(no debug.log)"
 if grep -q " ERROR : " "$OUT/config/debug.log" 2>/dev/null; then
     echo "::warning::the game reported errors during the smoke test (see debug.log above)"
 fi
+if grep -q "requested non-existing option GPU_BACKEND" "$OUT/config/debug.log" 2>/dev/null; then
+    echo "error: SDL startup requested missing GPU_BACKEND option" >&2
+    status=1
+fi
 
 shopt -s nullglob
 shots=("$OUT"/screenshots/*.png)
