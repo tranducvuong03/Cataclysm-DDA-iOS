@@ -34,12 +34,13 @@ Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
  src/output.cpp               |   2 +-
  src/overmap_ui.cpp           |   2 +-
  src/savegame.cpp             |   4 +-
- src/sdltiles.cpp             | 420 +++++++++++++++++++++++++++++++++++-------
+ src/sdl_font.cpp              |  10 +-
+ src/sdltiles.cpp              | 420 +++++++++++++++++++++++++++++++++++-------
  src/string_editor_window.cpp |   4 +-
  src/string_input_popup.cpp   |   4 +-
  src/uilist.cpp               |   2 +-
  src/worldfactory.cpp         |   4 +-
- 32 files changed, 542 insertions(+), 145 deletions(-)
+ 33 files changed, 550 insertions(+), 147 deletions(-)
 
 diff --git a/src/advanced_inv.cpp b/src/advanced_inv.cpp
 index 0156761..2bcdf0f 100644
@@ -947,6 +948,30 @@ index 3f7d99d..c290266 100644
  ///// quick shortcuts
  void game::load_shortcuts( const cata_path &path )
  {
+diff --git a/src/sdl_font.cpp b/src/sdl_font.cpp
+index aa43983..fba7c15 100644
+--- a/src/sdl_font.cpp
++++ b/src/sdl_font.cpp
+@@ -108,11 +110,17 @@ std::unique_ptr<Font> Font::load_font( SDL_Renderer_Ptr &renderer, Uint32 pixel_
+         }
+     }
+     // Not loaded as bitmap font (or it failed), try to load as truetype
++    std::string ttf_path = typeface;
++#if defined(CATA_IOS)
++    if( ttf_path.compare( 0, 5, "data/" ) == 0 ) {
++        ttf_path = PATH_INFO::datadir() + ttf_path.substr( 5 );
++    }
++#endif
+     try {
+         return std::unique_ptr<Font>( std::make_unique<CachedTTFFont>( width, height,
+-                                      palette, typeface, fontsize, fontblending ) );
++                                      palette, ttf_path, fontsize, fontblending ) );
+     } catch( std::exception &err ) {
+-        dbg( D_ERROR ) << "Failed to load font " << typeface << ": " << err.what();
++        dbg( D_ERROR ) << "Failed to load font " << ttf_path << ": " << err.what();
+     }
+     return nullptr;
+ }
 diff --git a/src/sdltiles.cpp b/src/sdltiles.cpp
 index a660043..e89cd96 100644
 --- a/src/sdltiles.cpp
