@@ -22,6 +22,8 @@ jobs:
     name: ${{ matrix.name }}
     runs-on: macos-15
     timeout-minutes: 300
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -42,10 +44,11 @@ jobs:
         run: |
           xcodebuild -version
           cmake --version | head -1
+          gh --version | head -1
           sysctl -n hw.ncpu hw.memsize
 
       - name: Install build tools
-        run: brew install ccache ninja gettext
+        run: brew install ccache gh ninja gettext
 
       - name: Fetch Cataclysm source
         run: scripts/fetch-cdda.sh
@@ -151,10 +154,30 @@ jobs:
         if: matrix.platform == 'iphoneos'
         run: scripts/package-ipa.sh build/iphoneos/Release-iphoneos/Cataclysm.app
 
-      - name: Upload IPA
-        if: matrix.platform == 'iphoneos'
-        uses: actions/upload-artifact@v4
-        with:
-          name: Cataclysm-unsigned-ipa
-          path: dist/*.ipa
-          compression-level: 0
+      - name: Publish IPA to GitHub Releases
+        if: matrix.platform == 'iphoneos' && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          source cdda.env
+          release_tag="${CDDA_VERSION_STRING}-ios.${GITHUB_RUN_NUMBER}"
+          ipa="dist/Cataclysm-${CDDA_VERSION_STRING}-unsigned.ipa"
+          release_ipa="dist/Cataclysm-${release_tag}-unsigned.ipa"
+          test -s "$ipa"
+          cp "$ipa" "$release_ipa"
+          sha256="$(shasum -a 256 "$release_ipa" | awk '{print $1}')"
+          title="Cataclysm DDA ${CDDA_VERSION_STRING} for iOS (build ${GITHUB_RUN_NUMBER})"
+          notes="$(printf 'Unsigned iOS IPA for %s.\n\nBuilt from commit %s.\n\nSHA-256: `%s`.\n\nSign and install with AltStore, Sideloadly, or another sideloading tool.' "$CDDA_VERSION_STRING" "$GITHUB_SHA" "$sha256")"
+          if gh release view "$release_tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$release_tag" "$release_ipa" --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$release_tag" "$release_ipa" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "$title" \
+              --notes "$notes" \
+              --prerelease
+          fi
