@@ -60,7 +60,7 @@ jobs:
           path: build/graphics
           key: cdda-graphics-${{ hashFiles('cdda.env') }}
 
-      - name: Install official tilesets
+      - name: Install official graphics assets
         run: bash scripts/fetch-graphics.sh
 
       - name: Save upstream graphics archive

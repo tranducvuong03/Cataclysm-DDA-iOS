@@ -14,9 +14,15 @@ if [ ! -d "$CDDA/data/json" ]; then
     exit 1
 fi
 if [ ! -s "$CDDA/gfx/MShockXotto+/tileset.txt" ]; then
-    echo "error: official graphical tilesets are missing; run scripts/fetch-graphics.sh" >&2
+    echo "error: official graphical assets are missing; run scripts/fetch-graphics.sh" >&2
     exit 1
 fi
+for asset in data/font/Terminus.ttf data/shaders/grayscale.frag.msl; do
+    if [ ! -s "$CDDA/$asset" ]; then
+        echo "error: required graphics asset $asset is missing; run scripts/fetch-graphics.sh" >&2
+        exit 1
+    fi
+done
 if [ ! -s "$CDDA/lang/mo/vi/LC_MESSAGES/cataclysm-dda.mo" ]; then
     echo "error: Vietnamese translation is missing; run scripts/compile-translations.sh" >&2
     exit 1
