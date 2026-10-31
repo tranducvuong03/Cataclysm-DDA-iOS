@@ -29,16 +29,16 @@ Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
  src/messages.cpp             |   2 +-
  src/mutation_ui.cpp          |   2 +-
  src/npctalk.cpp              |   4 +-
- src/options.cpp              |  91 ++++++--
+ src/options.cpp              |  97 ++++++++--
  src/output.cpp               |   2 +-
  src/overmap_ui.cpp           |   2 +-
  src/savegame.cpp             |   4 +-
- src/sdltiles.cpp              | 420 +++++++++++++++++++++++++++++------
+ src/sdltiles.cpp             | 420 +++++++++++++++++++++++++++++++++++-------
  src/string_editor_window.cpp |   4 +-
  src/string_input_popup.cpp   |   4 +-
  src/uilist.cpp               |   2 +-
  src/worldfactory.cpp         |   4 +-
- 31 files changed, 534 insertions(+), 144 deletions(-)
+ 31 files changed, 540 insertions(+), 144 deletions(-)
 
 diff --git a/src/advanced_inv.cpp b/src/advanced_inv.cpp
 index 0156761..2bcdf0f 100644
@@ -627,12 +627,18 @@ diff --git a/src/options.cpp b/src/options.cpp
 index a3d53fb..5b06ec5 100644
 --- a/src/options.cpp
 +++ b/src/options.cpp
-@@ -54,6 +54,10 @@
+@@ -54,6 +54,16 @@
  #include <jni.h>
  #endif
  
++#include <string>
 +#if defined(CATA_IOS)
 +#include "ios_platform.h"
++#include "terminal_layout.h"
++static std::string android_get_default_string_setting( const char *, const char *default_value )
++{
++    return default_value;
++}
 +#endif
 +
  #include <algorithm>
