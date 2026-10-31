@@ -44,7 +44,8 @@ if [[ "$po_count" == 0 ]]; then
     if [[ ! -f "$archive" ]] ||
        ! printf '%s  %s\n' "$CDDA_TRANSLATIONS_SHA256" "$archive" | shasum -a 256 -c --status; then
         rm -f "$archive"
-        url="https://github.com/CleverRaven/Cataclysm-DDA/releases/download/$CDDA_REF/cdda-translations-$CDDA_VERSION_STRING.tar.gz"
+        translations_version="${CDDA_VERSION_STRING#cdda-experimental-}"
+        url="https://github.com/CleverRaven/Cataclysm-DDA/releases/download/$CDDA_REF/cdda-translations-$translations_version.tar.gz"
         echo "==> Downloading official translations for $CDDA_VERSION_STRING"
         curl -fL --retry 3 --output "$archive" "$url"
         printf '%s  %s\n' "$CDDA_TRANSLATIONS_SHA256" "$archive" | shasum -a 256 -c
