@@ -33,12 +33,12 @@ Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
  src/output.cpp               |   2 +-
  src/overmap_ui.cpp           |   2 +-
  src/savegame.cpp             |   4 +-
- src/sdltiles.cpp             | 421 +++++++++++++++++++++++++++++------
+ src/sdltiles.cpp              | 420 +++++++++++++++++++++++++++++------
  src/string_editor_window.cpp |   4 +-
  src/string_input_popup.cpp   |   4 +-
  src/uilist.cpp               |   2 +-
  src/worldfactory.cpp         |   4 +-
- 31 files changed, 535 insertions(+), 144 deletions(-)
+ 31 files changed, 534 insertions(+), 144 deletions(-)
 
 diff --git a/src/advanced_inv.cpp b/src/advanced_inv.cpp
 index 0156761..2bcdf0f 100644
@@ -966,14 +966,13 @@ index a660043..e89cd96 100644
  #if defined(EMSCRIPTEN)
  #include <emscripten.h>
  #endif
-@@ -206,6 +212,13 @@ static void InitSDL()
+@@ -206,6 +212,12 @@ static void InitSDL()
  #if defined(SDL_SOUND)
      init_flags |= SDL_INIT_AUDIO;
  #endif
 +#if defined(CATA_IOS)
 +    SDL_SetHint( SDL_HINT_TOUCH_MOUSE_EVENTS, "0" );
 +    SDL_SetHint( SDL_HINT_MOUSE_TOUCH_EVENTS, "0" );
-+    SDL_SetHint( SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0" );
 +    SDL_SetHint( SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight" );
 +    SDL_SetHint( SDL_HINT_IOS_HIDE_HOME_INDICATOR, "2" );
 +#endif

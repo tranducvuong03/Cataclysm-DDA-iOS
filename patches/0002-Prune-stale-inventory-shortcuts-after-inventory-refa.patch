@@ -7,14 +7,14 @@ Validate saved inventory shortcuts against the current avatar inventory when ren
 
 Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
 ---
- src/sdltiles.cpp | 45 +++++++++++++++------------------------------
- 1 file changed, 15 insertions(+), 30 deletions(-)
+ src/sdltiles.cpp | 44 ++++++++++++++------------------------------
+ 1 file changed, 14 insertions(+), 30 deletions(-)
 
 diff --git a/src/sdltiles.cpp b/src/sdltiles.cpp
 index e89cd96..3a595b5 100644
 --- a/src/sdltiles.cpp
 +++ b/src/sdltiles.cpp
-@@ -5341,36 +5341,18 @@ bool remove_expired_actions_from_quick_shortcuts( const std::string &category )
+@@ -5341,36 +5341,17 @@ bool remove_expired_actions_from_quick_shortcuts( const std::string &category )
  
  void remove_stale_inventory_quick_shortcuts()
  {
@@ -53,10 +53,9 @@ index e89cd96..3a595b5 100644
 +    }
 +
 +    quick_shortcuts_t &qsl = quick_shortcuts_map["INVENTORY"];
-+    const invlets_bitset allocated = get_player_character().allocated_invlets();
 +    for( auto it = qsl.begin(); it != qsl.end(); ) {
 +        const int key = ( *it ).get_first_input();
-+        if( !inv_chars.valid( key ) || !allocated.test( static_cast<size_t>( key ) ) ) {
++        if( !inv_chars.valid( key ) || !get_player_character().invlet_to_item( key ) ) {
 +            it = qsl.erase( it );
 +        } else {
 +            ++it;
