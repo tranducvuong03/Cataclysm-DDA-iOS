@@ -42,9 +42,8 @@ if(NOT EXISTS "${CDDA_DIR}/src/main.cpp")
 endif()
 
 list(PREPEND CMAKE_PREFIX_PATH "${DEPS_PREFIX}")
-find_package(SDL3 3.4.0 REQUIRED CONFIG
-    PATHS "${DEPS_PREFIX}/lib/cmake/SDL3"
-    NO_DEFAULT_PATH)
+set(SDL3_DIR "${DEPS_PREFIX}/lib/cmake/SDL3")
+find_package(SDL3 3.4.0 REQUIRED CONFIG)
 foreach(_satellite SDL3_ttf SDL3_image SDL3_mixer)
     if(NOT EXISTS "${DEPS_PREFIX}/lib/lib${_satellite}.a")
         message(FATAL_ERROR "${_satellite} for ${IOS_PLATFORM} not found in ${DEPS_PREFIX}; run scripts/build-deps.sh ${IOS_PLATFORM}")
