@@ -173,10 +173,16 @@ jobs:
           notes="$(printf '## Download the IPA\n\nDownload the `Cataclysm-iOS-...-unsigned.ipa` file from the Assets section below.\n\nThis IPA is unsigned. Sign and install it with a sideloading tool such as AltStore or Sideloadly using your Apple ID.\n\nGame version: %s\nSHA-256: `%s`' "$CDDA_VERSION_STRING" "$sha256")"
           if gh release view "$release_tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$release_tag" "$release_ipa" --repo "$GITHUB_REPOSITORY" --clobber
+            gh release edit "$release_tag" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "$title" \
+              --notes "$notes" \
+              --prerelease
           else
             gh release create "$release_tag" "$release_ipa" \
               --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" \
               --title "$title" \
-              --notes "$notes"
+              --notes "$notes" \
+              --prerelease
           fi
