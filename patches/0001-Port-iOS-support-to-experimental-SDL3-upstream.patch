@@ -26,7 +26,7 @@ Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
  src/inventory.cpp            |   3 -
  src/inventory_ui.cpp         |   8 +-
  src/json_loader.cpp          |  21 ++
- src/main.cpp                 |  23 ++
+ src/main.cpp                 |  22 ++
  src/messages.cpp             |   2 +-
  src/mutation_ui.cpp          |   2 +-
  src/npctalk.cpp              |   4 +-
@@ -39,7 +39,7 @@ Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
  src/string_input_popup.cpp   |   4 +-
  src/uilist.cpp               |   2 +-
  src/worldfactory.cpp         |   4 +-
- 32 files changed, 543 insertions(+), 145 deletions(-)
+ 32 files changed, 542 insertions(+), 145 deletions(-)
 
 diff --git a/src/advanced_inv.cpp b/src/advanced_inv.cpp
 index 0156761..2bcdf0f 100644
@@ -561,33 +561,19 @@ index a5f96b9..c896ee6 100644
  extern "C" int SDL_main( int argc, char **argv ) {
  #else
  int main( int argc, const char *argv[] )
-@@ -936,6 +944,15 @@ int main( int argc, const char *argv[] )
-     initialize_imgui();
-     apply_runtime_cli_overrides( cli );
- 
+@@ -918,0 +919,12 @@ int main( int argc, const char *argv[] )
 +#if defined(CATA_IOS)
-+    // Game data ships read-only inside the app bundle. Run from there so the
-+    // few relative paths the game uses (e.g. touch control images) resolve.
++    // Set platform paths before interface initialization loads fonts and data.
 +    const std::string ios_resource_dir = cata_ios::resource_dir();
 +    if( chdir( ios_resource_dir.c_str() ) != 0 ) {
-+        printf( "Can't change directory to %s\n", ios_resource_dir.c_str() );
++        perror( "Cannot change working directory to the app resources" );
++        return 1;
 +    }
 +    PATH_INFO::init_base_path( ios_resource_dir );
-+#endif
-     // Now we do the actual game.
-     configure_curses_cursor();
-     install_signal_handlers();
-@@ -947,6 +964,10 @@ int main( int argc, const char *argv[] )
- 
-     select_initial_language();
-     replay_buffered_debugmsg_prompts();
-+#if defined(CATA_IOS)
-+    // Saves, config, mods and logs live in Documents/, visible in the Files app.
 +    PATH_INFO::init_user_dir( cata_ios::user_dir() );
++    PATH_INFO::set_standard_filenames();
 +#endif
- 
-     run_game_loop( cli );
- 
++
 diff --git a/src/messages.cpp b/src/messages.cpp
 index 2718b9e..66b3020 100644
 --- a/src/messages.cpp
