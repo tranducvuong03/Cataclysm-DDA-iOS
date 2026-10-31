@@ -11,10 +11,10 @@ Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
  1 file changed, 14 insertions(+), 30 deletions(-)
 
 diff --git a/src/sdltiles.cpp b/src/sdltiles.cpp
-index e89cd96..3a595b5 100644
+index 74dfd2f..e0af6f2 100644
 --- a/src/sdltiles.cpp
 +++ b/src/sdltiles.cpp
-@@ -5341,36 +5341,17 @@ bool remove_expired_actions_from_quick_shortcuts( const std::string &category )
+@@ -5340,36 +5340,17 @@ bool remove_expired_actions_from_quick_shortcuts( const std::string &category )
  
  void remove_stale_inventory_quick_shortcuts()
  {
@@ -62,7 +62,7 @@ index e89cd96..3a595b5 100644
          }
      }
  }
-@@ -5446,6 +5428,9 @@ void draw_quick_shortcuts()
+@@ -5445,6 +5426,9 @@ void draw_quick_shortcuts()
      bool shortcut_right = get_option<std::string>( "ANDROID_SHORTCUT_POSITION" ) == "right";
      std::string &category = touch_input_context.get_category();
      bool is_default_mode = category == "DEFAULTMODE";

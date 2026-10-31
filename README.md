@@ -72,14 +72,16 @@ variants) and restart the app.
 ### Language
 
 The app bundles the upstream translation catalogs. To use Vietnamese, open
-**Settings → Interface → Language** and choose **tiếng Việt**.
+**Settings → Interface → Language** and choose **tiếng Việt**. Installed catalogs remain
+selectable even when the upstream release does not include generated translation statistics.
 
 ### Tilesets
 
 The app bundles the official graphical tilesets from the matching upstream release. To switch
 from ASCII graphics, open **Settings → Graphics** and choose a tileset such as **MShockXotto+**.
 
-**Tiếng Việt:** Vào **Settings → Interface → Language** và chọn **tiếng Việt**. Để dùng hình
+**Tiếng Việt:** Vào **Settings → Interface → Language** và chọn **tiếng Việt**. Các catalog đã
+được đóng gói vẫn hiện trong danh sách kể cả khi release upstream thiếu thống kê bản dịch. Để dùng hình
 ảnh thay vì ký tự ASCII, vào **Settings → Graphics** rồi chọn tileset **MShockXotto+**.
 
 ## Files, saves and mods

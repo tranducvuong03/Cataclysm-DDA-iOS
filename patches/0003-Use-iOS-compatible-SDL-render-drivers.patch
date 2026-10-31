@@ -6,15 +6,17 @@ Subject: [PATCH] Use iOS-compatible SDL render drivers
 The desktop renderer hint requests OpenGL, but SDL 3.4 exposes OpenGL ES as
 `opengles2` on iOS. If the GPU renderer is unavailable, try Metal and OpenGL
 ES before Cataclysm falls back to the unsupported window-surface renderer.
-
 ---
  src/sdltiles.cpp | 4 ++++
  1 file changed, 4 insertions(+)
 
 diff --git a/src/sdltiles.cpp b/src/sdltiles.cpp
+index e0af6f2..6eeb5c7 100644
 --- a/src/sdltiles.cpp
 +++ b/src/sdltiles.cpp
-@@ -843,3 +843,7 @@ static void WinCreate()
+@@ -840,7 +840,11 @@ static void WinCreate()
+                       "GPU device toward Vulkan.";
+     }
  #  else
 +#    if defined(CATA_IOS)
 +    SDL_SetHint( SDL_HINT_RENDER_DRIVER, "gpu,metal,opengles2" );
@@ -22,3 +24,5 @@ diff --git a/src/sdltiles.cpp b/src/sdltiles.cpp
      SDL_SetHint( SDL_HINT_RENDER_DRIVER, "gpu,opengl" );
 +#    endif
  #  endif
+     if( !software_renderer ) {
+         dbg( D_INFO ) << "Attempting to initialize accelerated SDL renderer.";
