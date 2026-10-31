@@ -64,6 +64,7 @@ fi
 
 if [[ -z "$IPA" ]]; then
     scripts/prepare-cdda.sh
+    bash scripts/fetch-graphics.sh
     if [[ ! -f deps/install/iphoneos/lib/libSDL3.a ||
           ! -f deps/install/iphoneos/lib/libSDL3_ttf.a ||
           ! -f deps/install/iphoneos/lib/libSDL3_image.a ||

@@ -1,0 +1,25 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: cataclysm-ios <cataclysm-ios@localhost>
+Date: Sat, 31 Oct 2026 15:45:00 +0700
+Subject: [PATCH] Handle missing GPU backend option during SDL startup
+
+Some iOS builds do not register GPU_BACKEND, but SDL startup reads it
+unconditionally. Use SDL's automatic backend selection when it is absent
+instead of logging an error and reading a void option.
+
+---
+ src/sdltiles.cpp | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src/sdltiles.cpp b/src/sdltiles.cpp
+--- a/src/sdltiles.cpp
++++ b/src/sdltiles.cpp
+@@ -730,6 +730,7 @@ static void InitSDL()
+ #if !defined(__ANDROID__)
+     const bool gpu_driver_from_env = std::getenv( "SDL_GPU_DRIVER" ) != nullptr;
+-    const std::string gpu_backend = get_option<std::string>( "GPU_BACKEND" );
++    const std::string gpu_backend = get_options().has_option( "GPU_BACKEND" ) ?
++                                    get_option<std::string>( "GPU_BACKEND" ) : "auto";
+     if( const std::optional<std::string> hint = gpu_backend_hint( gpu_backend, gpu_driver_from_env ) ) {
+         SDL_SetHint( SDL_HINT_GPU_DRIVER, hint->c_str() );
+     }

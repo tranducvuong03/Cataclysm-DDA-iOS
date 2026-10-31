@@ -102,9 +102,15 @@ APP="$BUILD_DIR/$CONFIG-$PLATFORM/Cataclysm.app"
 if [[ ! -d "$APP" ]]; then
     APP="$(find "$BUILD_DIR" -name Cataclysm.app -type d -path "*$PLATFORM*" -prune | head -1)"
 fi
-if [[ ! -d "$APP/data/json" || ! -d "$APP/gfx" ||
-      ! -f "$APP/PrivacyInfo.xcprivacy" ]]; then
-    echo "error: game data or the privacy manifest is missing from $APP" >&2
+if [[ ! -d "$APP/data/json" ]]; then
+    echo "error: game data is missing from $APP" >&2
     exit 1
 fi
+for item in gfx/MShockXotto+/tileset.txt \
+            lang/mo/vi/LC_MESSAGES/cataclysm-dda.mo PrivacyInfo.xcprivacy; do
+    if [[ ! -s "$APP/$item" ]]; then
+        echo "error: $item is missing from $APP; fetch the graphics and compile translations before building" >&2
+        exit 1
+    fi
+done
 echo "==> Built $APP ($(du -sh "$APP" | cut -f1))"

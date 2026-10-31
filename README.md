@@ -73,6 +73,14 @@ variants) and restart the app.
 The app bundles the upstream translation catalogs. To use Vietnamese, open
 **Settings → Interface → Language** and choose **tiếng Việt**.
 
+### Tilesets
+
+The app bundles the official graphical tilesets from the matching upstream release. To switch
+from ASCII graphics, open **Settings → Graphics** and choose a tileset such as **MShockXotto+**.
+
+**Tiếng Việt:** Vào **Settings → Interface → Language** và chọn **tiếng Việt**. Để dùng hình
+ảnh thay vì ký tự ASCII, vào **Settings → Graphics** rồi chọn tileset **MShockXotto+**.
+
 ## Files, saves and mods
 
 Everything the game writes lives in the app's Documents folder, which shows up in the Files app
@@ -96,26 +104,116 @@ upstream marks this experimental.
 
 ## Building
 
-Requirements: a Mac with Xcode 15 or later, CMake 3.24 or later, and `gettext`
-(`brew install cmake gettext`) to compile translations.
+Local iOS builds require a Mac with Xcode 15 or later, CMake 3.24 or later, and GNU gettext
+(`brew install cmake gettext`) for translations. The scripts below use Bash and Apple's Xcode
+tools; they do not run natively in Windows PowerShell. If you are on Windows, use the GitHub
+Actions workflow described below.
+
+### Build an IPA for the currently pinned version
+
+From the repository root on a Mac:
 
 ```sh
-scripts/fetch-cdda.sh                 # clone upstream cdda-experimental-2026-10-30-2308 into ./cdda and apply patches/
-scripts/build-deps.sh                 # SDL3, SDL3_ttf, SDL3_image, SDL3_mixer for iOS
-scripts/compile-translations.sh       # downloads official .po catalogs if needed, then compiles lang/mo
-scripts/build-app.sh iphoneos         # or: iphonesimulator
-scripts/package-ipa.sh                # unsigned IPA in dist/
+scripts/fetch-cdda.sh
+bash scripts/fetch-graphics.sh
+scripts/build-deps.sh iphoneos
+scripts/compile-translations.sh
+scripts/build-app.sh iphoneos Release
+scripts/package-ipa.sh
 ```
 
-`build-app.sh` generates an Xcode project in `build/<platform>/CataclysmDDA.xcodeproj`. To
-install on your own device, set your team and a bundle identifier you own and build again:
+The unsigned IPA is written to
+`dist/Cataclysm-cdda-experimental-2026-10-30-2308-unsigned.ipa`. Sideload it with AltStore,
+Sideloadly, or another signing tool. An unsigned IPA cannot be installed directly on an iPhone.
+The first dependency build takes a while; it creates the SDL3 libraries in `deps/`, which can
+then be reused for later game versions.
+
+To build in GitHub Actions instead, commit and push your changes to the configured port branch.
+The [iOS workflow](https://github.com/tranducvuong03/Cataclysm-ios/actions/workflows/ios.yml)
+builds the device IPA and also builds and smoke-tests the Simulator version. Download
+**Cataclysm-unsigned-ipa** from a successful run's Artifacts. Prefer installing only after the
+Simulator smoke test passes.
+
+### Change the upstream version and build a new IPA
+
+The upstream tag, exact source commit, displayed game version, translation checksum, and graphics
+archive checksum are pinned together in `cdda.env`. Change all of these values for a new upstream
+release:
+
+```sh
+CDDA_REF=cdda-experimental-YYYY-MM-DD-HHMM
+CDDA_COMMIT=<full-40-character-commit-sha-for-that-tag>
+CDDA_VERSION_STRING=cdda-experimental-YYYY-MM-DD-HHMM
+CDDA_TRANSLATIONS_SHA256=<sha256-of-that-release-translation-archive>
+CDDA_GRAPHICS_SHA256=<sha256-of-that-release-graphics-archive>
+```
+
+Keep `CDDA_REPO` pointing at `https://github.com/CleverRaven/Cataclysm-DDA.git`. Do not put
+the upstream commit SHA in `CDDA_TRANSLATIONS_SHA256`: it is the SHA-256 checksum of the separate
+translations `.tar.gz` asset, not a Git commit ID.
+
+Find the exact commit and translations checksum from the upstream GitHub release for the tag.
+The release asset is normally named
+`cdda-translations-YYYY-MM-DD-HHMM.tar.gz` (without the `cdda-experimental-` prefix).
+GitHub's release API reports the asset's `digest` as `sha256:...`; copy the hex digest into
+`CDDA_TRANSLATIONS_SHA256`. If the digest is not shown, download that exact asset and calculate
+it with `shasum -a 256 <downloaded-archive>`. The build script verifies the checksum before
+extracting any catalogs.
+If that release has no translation archive, confirm the source checkout contains usable
+`lang/po/*.po` files before building; do not copy translations from a different game version.
+The source repository does not include the full graphical tilesets. Get
+`CDDA_GRAPHICS_SHA256` from the release asset
+`cdda-windows-with-graphics-x64-YYYY-MM-DD-HHMM.zip` (again, the asset name omits
+`cdda-experimental-`). The script downloads the archive, verifies its checksum, and installs only
+its `gfx/` directory. It intentionally fails if the expected MShockXotto+ tileset is absent.
+
+Next, rebuild the patched upstream checkout from scratch. **Back up any local work in `cdda/`
+first**: `--force` removes that generated checkout and recreates it from the pinned upstream and
+the patch series.
+
+```sh
+scripts/fetch-cdda.sh --force
+```
+
+This applies every file in `patches/` to the new upstream revision. If a patch fails to apply,
+stop and port that change to the new source before continuing; do not build against a partially
+patched checkout. The iOS patches are maintained in this repository. If you port a patch by
+editing `cdda/`, commit the change on its `ios` branch, then run `scripts/export-patches.sh` to
+regenerate `patches/`. Review the generated diff and run `scripts/prepare-cdda.sh` to verify that
+the checkout and patch files match.
+
+Once all patches apply, verify and build:
+
+```sh
+scripts/prepare-cdda.sh
+bash scripts/fetch-graphics.sh
+scripts/build-deps.sh iphoneos       # only needed if the SDL dependencies are not already built
+scripts/compile-translations.sh
+scripts/build-app.sh iphoneos Release
+scripts/package-ipa.sh
+```
+
+The IPA name uses `CDDA_VERSION_STRING`. To choose another output path:
+
+```sh
+scripts/package-ipa.sh \
+  build/iphoneos/Release-iphoneos/Cataclysm.app \
+  dist/Cataclysm-my-version-unsigned.ipa
+```
+
+Before sharing the IPA, push the `cdda.env` and any patch changes to GitHub and wait for the
+device build and Simulator smoke tests to pass. Updating upstream can change save compatibility;
+back up worlds before testing a different game version.
+
+`build-app.sh` generates an Xcode project in `build/<platform>/CataclysmDDA.xcodeproj`. To sign
+the app with your own Apple Developer team, set your team and a bundle identifier you own:
 
 ```sh
 APP_DEVELOPMENT_TEAM=ABCDE12345 APP_BUNDLE_ID=com.example.cataclysm scripts/build-app.sh iphoneos
 ```
 
-or open the project in Xcode, select the *Cataclysm* scheme, pick your team under *Signing &
-Capabilities* and press Run.
+Alternatively, open the generated project in Xcode, select the *Cataclysm* scheme, choose your
+team under *Signing & Capabilities*, and press Run.
 
 Cataclysm keeps the whole game database in memory. If your App ID has the
 [Increased Memory Limit](https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.developer.kernel.increased-memory-limit)
@@ -123,12 +221,107 @@ capability enabled, request it with `EXTRA_CMAKE_ARGS=-DAPP_INCREASED_MEMORY_LIM
 on devices with less RAM. A full build takes a while: Cataclysm has around 450 large source
 files.
 
+### Hướng dẫn tiếng Việt: đổi phiên bản upstream và tạo IPA
+
+Muốn build tại máy cần **Mac có Xcode 15 trở lên**, CMake 3.24 trở lên, GNU gettext và Bash.
+Các lệnh build iOS không chạy trực tiếp trong Windows PowerShell. Nếu bạn dùng Windows, hãy
+sửa mã rồi push lên GitHub; GitHub Actions sẽ build IPA trên máy Mac của GitHub.
+
+#### Build IPA của phiên bản hiện tại
+
+Mở Terminal tại thư mục repo trên Mac và chạy:
+
+```sh
+scripts/fetch-cdda.sh
+bash scripts/fetch-graphics.sh
+scripts/build-deps.sh iphoneos
+scripts/compile-translations.sh
+scripts/build-app.sh iphoneos Release
+scripts/package-ipa.sh
+```
+
+IPA chưa ký sẽ nằm trong `dist/` với tên phiên bản hiện tại. Cần ký/cài bằng AltStore, Sideloadly
+hoặc công cụ sideload tương tự; IPA unsigned không cài trực tiếp được. `build-deps.sh` chỉ cần
+chạy lại khi thư viện SDL chưa được build hoặc cần cập nhật.
+
+Nếu dùng Windows hoặc muốn CI build hộ: commit rồi push thay đổi lên branch port. Mở
+[iOS workflow](https://github.com/tranducvuong03/Cataclysm-ios/actions/workflows/ios.yml), chờ
+cả build thiết bị và Simulator smoke test
+thành công, rồi tải artifact **Cataclysm-unsigned-ipa** trong run đó.
+
+#### Đổi sang tag upstream mới
+
+Mở `cdda.env` và cập nhật đồng bộ năm giá trị sau theo release upstream mới:
+
+```sh
+CDDA_REF=cdda-experimental-YYYY-MM-DD-HHMM
+CDDA_COMMIT=<SHA-40-ky-tu-cua-tag>
+CDDA_VERSION_STRING=cdda-experimental-YYYY-MM-DD-HHMM
+CDDA_TRANSLATIONS_SHA256=<SHA-256-cua-goi-dich-tar.gz>
+CDDA_GRAPHICS_SHA256=<SHA-256-cua-goi-tileset-zip>
+```
+
+- `CDDA_REF`: tên tag upstream.
+- `CDDA_COMMIT`: commit SHA đầy đủ mà tag trỏ tới, không phải SHA rút gọn.
+- `CDDA_VERSION_STRING`: chuỗi phiên bản hiển thị và dùng đặt tên IPA.
+- `CDDA_TRANSLATIONS_SHA256`: SHA-256 của gói dịch riêng; **không phải** commit SHA.
+- `CDDA_GRAPHICS_SHA256`: SHA-256 của gói tileset đồ họa riêng; **không phải** commit SHA.
+
+Giữ `CDDA_REPO` là repo upstream `CleverRaven/Cataclysm-DDA`. Trong trang GitHub Release của
+đúng tag, tìm asset `cdda-translations-YYYY-MM-DD-HHMM.tar.gz`. Tên asset bỏ phần
+`cdda-experimental-`. Lấy trường `digest` dạng `sha256:...` của asset, rồi điền phần mã hex vào
+`CDDA_TRANSLATIONS_SHA256`. Script sẽ kiểm tra checksum trước khi giải nén và biên dịch `.po`
+thành `.mo`. Không dùng gói dịch của phiên bản khác. Nếu release không có gói dịch, hãy kiểm tra
+source có `lang/po/*.po` hợp lệ trước khi tiếp tục.
+
+Sau khi cập nhật `cdda.env`, tạo lại checkout upstream đã áp dụng các patch:
+
+```sh
+scripts/fetch-cdda.sh --force
+```
+
+**Lưu lại mọi công việc cần giữ trong `cdda/` trước khi chạy lệnh này**: `--force` xóa checkout
+được tạo trước đó rồi tải đúng tag mới. Script sẽ áp dụng toàn bộ `patches/*.patch`. Nếu có patch
+báo lỗi, dừng lại và port patch đó sang upstream mới; đừng build từ checkout chỉ được áp dụng một
+phần. Nếu phải sửa code trong `cdda/`, hãy commit thay đổi trên branch `ios`, chạy
+`scripts/export-patches.sh` để cập nhật `patches/`, xem lại diff rồi chạy
+`scripts/prepare-cdda.sh` để kiểm tra patch series đã đồng bộ.
+
+Bản source upstream không có đầy đủ tileset đồ họa. Lấy SHA-256 của asset
+`cdda-windows-with-graphics-x64-YYYY-MM-DD-HHMM.zip` trong release cùng tag, điền vào
+`CDDA_GRAPHICS_SHA256` trong `cdda.env`. Lấy digest `sha256:...` của asset và chỉ chép phần hex.
+`scripts/fetch-graphics.sh` tải gói, kiểm tra SHA-256 rồi chép `gfx/` vào checkout.
+
+Build và đóng gói IPA:
+
+```sh
+scripts/prepare-cdda.sh
+bash scripts/fetch-graphics.sh
+scripts/build-deps.sh iphoneos       # bỏ qua nếu SDL đã có sẵn trong deps/install/iphoneos
+scripts/compile-translations.sh
+scripts/build-app.sh iphoneos Release
+scripts/package-ipa.sh
+```
+
+Muốn tự đặt tên file IPA:
+
+```sh
+scripts/package-ipa.sh \
+  build/iphoneos/Release-iphoneos/Cataclysm.app \
+  dist/Cataclysm-phien-ban-moi-unsigned.ipa
+```
+
+Nếu build trên Windows, sau khi cập nhật `cdda.env` và patch, commit rồi push lên GitHub Actions.
+Chỉ cài/chia sẻ IPA sau khi CI build thành công và smoke test trên Simulator qua. Phiên bản game
+mới có thể không tương thích save cũ; hãy sao lưu thư mục `save/` trước khi thử.
+
 ### Repository layout
 
 | Path | |
 |---|---|
 | `cdda.env` | Upstream repository, tag and commit the port is built from |
 | `patches/` | Changes to upstream sources, applied as commits on branch `ios` of `./cdda` |
+| `scripts/fetch-graphics.sh` | Downloads and verifies the matching upstream tileset archive |
 | `ios/CMakeLists.txt` | Xcode project: game sources, SDL3 libraries, app bundle, game data |
 | `ios/src/ios_platform.mm` | iOS platform layer: paths, safe area, keyboard, haptics, keyboard button |
 | `ios/src/ios_autoplay.cpp` | Scripted input for automated tests |

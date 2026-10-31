@@ -50,6 +50,23 @@ jobs:
       - name: Fetch Cataclysm source
         run: scripts/fetch-cdda.sh
 
+      - name: Restore upstream graphics archive
+        id: graphics-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: build/graphics
+          key: cdda-graphics-${{ hashFiles('cdda.env') }}
+
+      - name: Install official tilesets
+        run: bash scripts/fetch-graphics.sh
+
+      - name: Save upstream graphics archive
+        if: matrix.platform == 'iphoneos' && steps.graphics-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: build/graphics
+          key: ${{ steps.graphics-cache.outputs.cache-primary-key }}
+
       - name: Restore SDL3 libraries
         id: deps
         uses: actions/cache/restore@v4
@@ -70,14 +87,12 @@ jobs:
 
       - name: Restore upstream translation archive
         id: translations-cache
-        if: matrix.platform == 'iphoneos'
         uses: actions/cache/restore@v4
         with:
           path: build/translations
           key: cdda-translations-${{ hashFiles('cdda.env') }}
 
       - name: Compile translations
-        if: matrix.platform == 'iphoneos'
         run: scripts/compile-translations.sh
 
       - name: Save upstream translation archive

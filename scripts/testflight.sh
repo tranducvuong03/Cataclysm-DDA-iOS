@@ -81,6 +81,7 @@ fi
 
 cd "$ROOT"
 scripts/prepare-cdda.sh
+bash scripts/fetch-graphics.sh
 if [[ ! -f deps/install/iphoneos/lib/libSDL3.a ||
       ! -f deps/install/iphoneos/lib/libSDL3_ttf.a ||
       ! -f deps/install/iphoneos/lib/libSDL3_image.a ||
@@ -130,7 +131,9 @@ if ! plist ApplicationProperties:ApplicationPath "$ARCHIVE/Info.plist" >/dev/nul
     echo "error: $ARCHIVE is not an iOS app archive" >&2
     exit 1
 fi
-for item in data/json gfx PrivacyInfo.xcprivacy embedded.mobileprovision; do
+for item in data/json gfx/MShockXotto+/tileset.txt \
+            lang/mo/vi/LC_MESSAGES/cataclysm-dda.mo \
+            PrivacyInfo.xcprivacy embedded.mobileprovision; do
     if [[ ! -e "$APP/$item" ]]; then
         echo "error: $item is missing from the archived app" >&2
         exit 1
