@@ -130,7 +130,7 @@ if ! plist ApplicationProperties:ApplicationPath "$ARCHIVE/Info.plist" >/dev/nul
     echo "error: $ARCHIVE is not an iOS app archive" >&2
     exit 1
 fi
-for item in data/json gfx android/joystick.png PrivacyInfo.xcprivacy embedded.mobileprovision; do
+for item in data/json gfx PrivacyInfo.xcprivacy embedded.mobileprovision; do
     if [[ ! -e "$APP/$item" ]]; then
         echo "error: $item is missing from the archived app" >&2
         exit 1
