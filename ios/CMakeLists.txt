@@ -117,6 +117,7 @@ set(CDDA_INCLUDE_DIRS
     "${SRC}/third-party"
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
     "${DEPS_PREFIX}/include"
+    "${DEPS_PREFIX}/include/SDL3"
     "${DEPS_PREFIX}/include/freetype2")
 
 # Third-party code is compiled warning-free in its own static libraries.
