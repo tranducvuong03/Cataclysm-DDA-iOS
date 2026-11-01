@@ -334,8 +334,8 @@ SDL use; update it if new code uses other
 CI builds both the device and the simulator app. The simulator job installs the app in an
 iPhone and an iPad Simulator and drives it with `CATA_AUTOPLAY` (see
 `ios/src/ios_autoplay.cpp`): it starts a *Play Now!* game, exercises the touch controls and the
-on-screen keyboard, saves and quits, checks that the character save was written and uploads
-screenshots and logs as the **smoke-test** artifact.
+on-screen keyboard, saves through the game loop, checks that the character save was written and
+uploads screenshots and logs as the **smoke-test** artifact.
 The Simulator can report the Mac's keyboard as a hardware keyboard, which hides the quick
 shortcuts, so the test sets `CATA_IOS_HARDWARE_KEYBOARD=0` to get the phone behaviour.
 `scripts/simulator-smoke-test.sh` runs the same test locally (`SMOKE_DEVICE_KIND=ipad` for an

@@ -90,6 +90,8 @@ void autoplay_input_context( const std::string &category );
 bool autoplay_frame( std::string &path );
 // Whether a scripted step pressed the keyboard button. Reported once.
 bool autoplay_consume_keyboard_toggle();
+// Whether a scripted step requested a game save. Reported once.
+bool autoplay_consume_save_request();
 
 } // namespace cata_ios
 

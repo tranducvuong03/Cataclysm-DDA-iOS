@@ -59,10 +59,8 @@ DEFAULT_SCRIPT+=";swipe=0.3,0.5,0.45,0.5;2:shot=06-swipe-move;text=."
 # Two-finger tap: inventory. Double tap: back out of it.
 DEFAULT_SCRIPT+=";2:tap2=0.3,0.5;2:shot=07-two-finger-tap-inventory"
 DEFAULT_SCRIPT+=";tap=0.3,0.5;0.1:tap=0.3,0.5;2:wait=DEFAULTMODE;shot=08-double-tap-back"
-# Save and quit uses the upstream default Shift+S binding and asks for
-# confirmation. This writes the character save without relying on an optional
-# quicksave keybinding.
-DEFAULT_SCRIPT+=";key=Shift+S;2:shot=09-save-confirmation;text=y;5:shot=10-after-save"
+# Save through the game-loop autoplay hook and verify the character file.
+DEFAULT_SCRIPT+=";save;2:shot=09-after-save;5:shot=10-save-complete"
 DEFAULT_SCRIPT+=";log=autoplay-finished"
 SCRIPT="${SMOKE_SCRIPT:-$DEFAULT_SCRIPT}"
 
@@ -255,7 +253,7 @@ if grep -n "Permission denied\|Read-only file system\|Operation not permitted" \
     echo "error: the game tried to write where it may not (see above)" >&2
     status=1
 fi
-# The save-and-quit action at the end of the default script writes the character.
+# The save action at the end of the default script writes the character.
 if [[ -z "${SMOKE_SCRIPT:-}" && -z "$(find "$DOCS/save" -name '*.sav*' -print -quit 2>/dev/null)" ]]; then
     echo "error: no saved character in $DOCS/save" >&2
     status=1
