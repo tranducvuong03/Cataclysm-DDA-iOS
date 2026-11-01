@@ -148,8 +148,9 @@ Each build gets a unique internal tag (`ios-build-<run-number>`) and a clearly n
 source archives for release tags, but they are not uploaded by this workflow and are not needed
 to install the IPA. Check the workflow's Simulator test results before installing.
 
-The workflow also checks the upstream releases twice an hour (at minute 17 and 47 UTC) for a new
-`cdda-experimental-YYYY-MM-DD-HHMM` release. Once its graphics asset and SHA-256 digest are
+The workflow also checks the upstream releases four times an hour, at 7, 22, 37, and 52 minutes
+past the hour (UTC), for a new `cdda-experimental-YYYY-MM-DD-HHMM` release. Once its graphics
+asset and SHA-256 digest are
 available, it builds that exact version using the pinned
 `cdda-translations-2026-10-30-2308.tar.gz` archive, runs the same smoke tests, and publishes a
 prerelease titled with the upstream version. The uploaded IPA filename ends in
@@ -157,6 +158,9 @@ prerelease titled with the upstream version. The uploaded IPA filename ends in
 the upstream tag, commit, and asset checksums. Existing upstream versions are not built again.
 If an upstream change is incompatible with the iOS patches or fails a build or smoke test, no
 IPA release is published and `cdda.env` is left unchanged.
+To check immediately instead of waiting for the next scheduled run, open **Actions**, select
+**iOS**, then **Run workflow**. This checks for a new upstream version and builds it only if one
+is ready.
 GitHub may delay or drop scheduled runs during periods of high load, so these checks are not
 guaranteed to start at their exact scheduled times. Every run that GitHub starts is visible in the
 Actions tab.

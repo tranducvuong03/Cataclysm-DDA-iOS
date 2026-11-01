@@ -8,7 +8,7 @@ on:
   pull_request:
   workflow_dispatch:
   schedule:
-    - cron: "17,47 * * * *"
+    - cron: "7,22,37,52 * * * *"
 
 # A full build takes a while; let a running build finish (and report) and
 # queue the newest push behind it rather than cancelling it.
@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   check_upstream:
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     name: Check for a new upstream experimental release
     runs-on: ubuntu-latest
     outputs:
@@ -38,7 +38,7 @@ jobs:
 
   build:
     needs: check_upstream
-    if: always() && (github.event_name != 'schedule' || needs.check_upstream.outputs.should_build == 'true')
+    if: always() && ((github.event_name != 'schedule' && github.event_name != 'workflow_dispatch') || needs.check_upstream.outputs.should_build == 'true')
     name: ${{ matrix.name }}
     runs-on: macos-15
     timeout-minutes: 300
@@ -59,7 +59,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Pin upstream release for this scheduled build
-        if: github.event_name == 'schedule'
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         env:
           UPSTREAM_REF: ${{ needs.check_upstream.outputs.upstream_ref }}
           UPSTREAM_COMMIT: ${{ needs.check_upstream.outputs.upstream_commit }}
@@ -286,7 +286,7 @@ jobs:
       - check_upstream
       - build
       - publish-ipa
-    if: github.event_name == 'schedule' && needs.check_upstream.outputs.should_build == 'true'
+    if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && needs.check_upstream.outputs.should_build == 'true'
     name: Update the pinned upstream version
     runs-on: ubuntu-latest
     permissions:
