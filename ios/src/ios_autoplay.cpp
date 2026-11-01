@@ -11,6 +11,7 @@
 //                         after 10 min)
 //   text=<utf-8>          type text (one SDL_EVENT_TEXT_INPUT per character)
 //   key=<name>            press and release a key (SDL key name, e.g. Return)
+//   key=Shift+<name>       press a key with Shift held, e.g. Shift+S
 //   tap=<x>,<y>           one-finger tap at normalized window coordinates
 //   swipe=<x0>,<y0>,<x1>,<y1>  one-finger swipe
 //   tap2=<x>,<y>          two-finger tap
@@ -108,7 +109,7 @@ void push_finger( SDL_EventType type, SDL_FingerID finger, float x, float y )
     SDL_PushEvent( &event );
 }
 
-void push_key( SDL_Keycode key )
+void push_key( SDL_Keycode key, SDL_Keymod modifiers = SDL_KMOD_NONE )
 {
     for( SDL_EventType type : { SDL_EVENT_KEY_DOWN, SDL_EVENT_KEY_UP } ) {
         SDL_Event event;
@@ -118,6 +119,7 @@ void push_key( SDL_Keycode key )
         event.key.windowID = window_id();
         event.key.down = type == SDL_EVENT_KEY_DOWN;
         event.key.key = key;
+        event.key.mod = modifiers;
         event.key.scancode = SDL_GetScancodeFromKey( key, nullptr );
         SDL_PushEvent( &event );
     }
@@ -164,11 +166,18 @@ void run_step( const autoplay_step &step )
     if( step.action == "text" ) {
         push_text( step.arg );
     } else if( step.action == "key" ) {
-        const SDL_Keycode key = SDL_GetKeyFromName( step.arg.c_str() );
+        std::string key_name = step.arg;
+        SDL_Keymod modifiers = SDL_KMOD_NONE;
+        constexpr char shift_prefix[] = "Shift+";
+        if( key_name.compare( 0, sizeof( shift_prefix ) - 1, shift_prefix ) == 0 ) {
+            modifiers = SDL_KMOD_SHIFT;
+            key_name.erase( 0, sizeof( shift_prefix ) - 1 );
+        }
+        const SDL_Keycode key = SDL_GetKeyFromName( key_name.c_str() );
         if( key == SDLK_UNKNOWN ) {
-            std::fprintf( stderr, "[autoplay] unknown key %s\n", step.arg.c_str() );
+            std::fprintf( stderr, "[autoplay] unknown key %s\n", key_name.c_str() );
         } else {
-            push_key( key );
+            push_key( key, modifiers );
         }
     } else if( step.action == "tap" || step.action == "tap2" ) {
         const std::vector<float> p = parse_floats( step.arg );

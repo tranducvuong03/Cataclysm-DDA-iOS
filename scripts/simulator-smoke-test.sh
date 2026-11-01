@@ -62,7 +62,7 @@ DEFAULT_SCRIPT+=";tap=0.3,0.5;0.1:tap=0.3,0.5;2:wait=DEFAULTMODE;shot=08-double-
 # Save and quit uses the upstream default Shift+S binding and asks for
 # confirmation. This writes the character save without relying on an optional
 # quicksave keybinding.
-DEFAULT_SCRIPT+=";text=S;2:shot=09-save-confirmation;text=y;5:shot=10-after-save"
+DEFAULT_SCRIPT+=";key=Shift+S;2:shot=09-save-confirmation;text=y;5:shot=10-after-save"
 DEFAULT_SCRIPT+=";log=autoplay-finished"
 SCRIPT="${SMOKE_SCRIPT:-$DEFAULT_SCRIPT}"
 
