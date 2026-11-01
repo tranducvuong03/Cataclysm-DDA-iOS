@@ -92,30 +92,8 @@ build_one() {
 for platform in "${platforms[@]}"; do
     mkdir -p "$BUILD/$platform"
     prefix="$INSTALL/$platform"
-    audio_options=(
-        -DSDL_SHARED=OFF
-        -DSDL_STATIC=ON
-        -DSDL_TEST_LIBRARY=OFF
-        -DSDL_INSTALL=ON
-    )
-    if [[ "$platform" == "iphonesimulator" ]]; then
-        audio_options+=(-DSDL_DUMMYAUDIO=ON)
-        # SDL won't honor SDL_AUDIO_DRIVER for drivers marked as preferred.
-        python3 - "$SDL3_SRC/src/audio/dummy/SDL_dummyaudio.c" <<'PY'
-import sys
-from pathlib import Path
-
-path = Path(sys.argv[1])
-source = path.read_text()
-preferred = '    "dummy", "SDL dummy audio driver", DUMMYAUDIO_Init, true, false'
-selectable = '    "dummy", "SDL dummy audio driver", DUMMYAUDIO_Init, false, false'
-if source.count(preferred) != 1:
-    raise SystemExit(f"expected exactly one SDL dummy audio bootstrap in {path}")
-path.write_text(source.replace(preferred, selectable, 1))
-PY
-    fi
-
-    build_one "$platform" SDL3 "$SDL3_SRC" "${audio_options[@]}"
+    build_one "$platform" SDL3 "$SDL3_SRC" \
+        -DSDL_SHARED=OFF -DSDL_STATIC=ON -DSDL_TEST_LIBRARY=OFF -DSDL_INSTALL=ON
 
     build_one "$platform" SDL3_ttf "$TTF_SRC" \
         -DSDLTTF_VENDORED=ON -DSDLTTF_HARFBUZZ=ON -DSDLTTF_PLUTOSVG=OFF -DSDLTTF_INSTALL=ON \

@@ -156,6 +156,8 @@ publishes a prerelease titled with the upstream version. The uploaded IPA filena
 the upstream tag, commit, and asset checksums. Existing upstream versions are not built again.
 If an upstream change is incompatible with the iOS patches or fails a build or smoke test, no
 IPA release is published and `cdda.env` is left unchanged.
+Simulator checks verify that CC-Sounds is bundled, enabled, and selected; they do not test audio
+playback because the iOS Simulator may not expose an audio output device.
 
 ### Change the upstream version and build a new IPA
 

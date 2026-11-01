@@ -31,21 +31,9 @@ api_headers=(-H "X-GitHub-Api-Version: 2022-11-28")
 if [[ -n "${GH_TOKEN:-}" ]]; then
     api_headers+=(-H "Authorization: Bearer $GH_TOKEN")
 fi
-page=1
-already_published=false
-while :; do
-    published_releases="$(curl -fsSL "${api_headers[@]}" "$releases_api&page=$page")"
-    if jq -e --arg name "$ref" 'any(.[]; .name == $name)' <<<"$published_releases" >/dev/null; then
-        already_published=true
-        break
-    fi
-    if (( $(jq 'length' <<<"$published_releases") < 100 )); then
-        break
-    fi
-    page=$((page + 1))
-done
-if [[ "$already_published" == true ]]; then
-    echo "An IPA release for upstream $ref already exists; skipping."
+source cdda.env
+if [[ "$CDDA_REF" == "$ref" ]]; then
+    echo "Upstream $ref is already pinned after a successful iOS build; skipping."
     echo "should_build=false" >> "$GITHUB_OUTPUT"
     exit 0
 fi

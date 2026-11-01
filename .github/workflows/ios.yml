@@ -45,8 +45,6 @@ jobs:
     name: ${{ matrix.name }}
     runs-on: macos-15
     timeout-minutes: 300
-    permissions:
-      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -227,21 +225,44 @@ jobs:
         if: matrix.platform == 'iphoneos'
         run: scripts/package-ipa.sh build/iphoneos/Release-iphoneos/Cataclysm.app
 
-      - name: Publish IPA to GitHub Releases
+      - name: Upload unsigned IPA for publishing
         if: matrix.platform == 'iphoneos' && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-ipa
+          path: |
+            cdda.env
+            dist/Cataclysm-*-unsigned.ipa
+          if-no-files-found: error
+
+  publish-ipa:
+    needs: build
+    if: github.event_name != 'pull_request'
+    name: Publish tested IPA
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download unsigned IPA
+        uses: actions/download-artifact@v4
+        with:
+          name: unsigned-ipa
+          path: release-input
+
+      - name: Publish IPA to GitHub Releases
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
         run: |
-          source cdda.env
+          source release-input/cdda.env
           release_tag="ios-build-${GITHUB_RUN_NUMBER}"
-          ipa="dist/Cataclysm-${CDDA_VERSION_STRING}-unsigned.ipa"
-          release_ipa="dist/Cataclysm-iOS-${CDDA_VERSION_STRING}-build-${GITHUB_RUN_NUMBER}-unsigned.ipa"
+          ipa="release-input/dist/Cataclysm-${CDDA_VERSION_STRING}-unsigned.ipa"
+          release_ipa="Cataclysm-iOS-${CDDA_VERSION_STRING}-build-${GITHUB_RUN_NUMBER}-unsigned.ipa"
           test -s "$ipa"
           cp "$ipa" "$release_ipa"
-          sha256="$(shasum -a 256 "$release_ipa" | awk '{print $1}')"
+          sha256="$(sha256sum "$release_ipa" | awk '{print $1}')"
           title="$CDDA_VERSION_STRING"
           notes="$(printf '## Download the IPA\n\nDownload the `Cataclysm-iOS-...-unsigned.ipa` file from the Assets section below.\n\nThis IPA is unsigned. Sign and install it with a sideloading tool such as AltStore or Sideloadly using your Apple ID.\n\nGame version: %s\nSHA-256: `%s`' "$CDDA_VERSION_STRING" "$sha256")"
           if gh release view "$release_tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
@@ -264,6 +285,7 @@ jobs:
     needs:
       - check_upstream
       - build
+      - publish-ipa
     if: github.event_name == 'schedule' && needs.check_upstream.outputs.should_build == 'true'
     name: Update the pinned upstream version
     runs-on: ubuntu-latest
