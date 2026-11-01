@@ -8,7 +8,7 @@ on:
   pull_request:
   workflow_dispatch:
   schedule:
-    - cron: "*/30 * * * *"
+    - cron: "17,47 * * * *"
 
 # A full build takes a while; let a running build finish (and report) and
 # queue the newest push behind it rather than cancelling it.
