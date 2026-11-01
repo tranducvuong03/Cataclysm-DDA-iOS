@@ -17,7 +17,8 @@
 #                   screenshots as base64 to the log, for CI setups where
 #                   artifacts are hard to reach
 #
-# Exits non-zero if the app crashes or the expected screenshots are missing.
+# Exits non-zero if the app crashes, required screenshots are missing, or the
+# bundled soundpack is missing or not selected in the saved game settings.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -30,6 +31,14 @@ OUT="$(cd "$OUT" && pwd)"
 for asset in data/font/Terminus.ttf data/shaders/grayscale.frag.msl; do
     if [[ ! -s "$APP/$asset" ]]; then
         echo "error: required graphics asset $asset is missing from $APP" >&2
+        exit 1
+    fi
+done
+for asset in data/sound/CC-Sounds/soundpack.txt \
+             data/sound/CC-Sounds/LICENSE.txt \
+             data/sound/CC-Sounds/music/CO.AG_authorisation.txt; do
+    if [[ ! -s "$APP/$asset" ]]; then
+        echo "error: required soundpack asset $asset is missing from $APP" >&2
         exit 1
     fi
 done
@@ -107,7 +116,6 @@ trap 'chmod -R u+w "$INSTALLED_APP" 2>/dev/null || true' EXIT
 echo "==> Launching $BUNDLE_ID"
 launch_output="$(SIMCTL_CHILD_CATA_AUTOPLAY="$SCRIPT" \
     SIMCTL_CHILD_CATA_IOS_HARDWARE_KEYBOARD="${SMOKE_HARDWARE_KEYBOARD:-0}" \
-    SIMCTL_CHILD_SDL_AUDIO_DRIVER=dummy \
     xcrun simctl launch \
     --stdout="$OUT/stdout.log" --stderr="$OUT/stderr.log" \
     "$UDID" "$BUNDLE_ID")"
@@ -190,13 +198,29 @@ if grep -q "requested non-existing option GPU_BACKEND" "$OUT/config/debug.log" 2
     echo "error: SDL startup requested missing GPU_BACKEND option" >&2
     status=1
 fi
-if ! grep -qF "Current soundpack is: CC-Sounds" "$OUT/config/debug.log" 2>/dev/null; then
-    echo "error: SDL audio did not initialize with the bundled CC-Sounds pack" >&2
-    status=1
-fi
 if grep -q "The tileset you're using has no 'unknown' tile defined!" \
         "$OUT/config/debug.log" 2>/dev/null; then
     echo "error: a loaded tileset is missing its required 'unknown' fallback tile" >&2
+    status=1
+fi
+if [[ -s "$OUT/config/options.json" ]]; then
+    python3 - "$OUT/config/options.json" <<'PY' || status=1
+import json
+import sys
+from pathlib import Path
+
+options = {
+    item.get("name"): item.get("value")
+    for item in json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+}
+if options.get("SOUND_ENABLED") is not True:
+    raise SystemExit("error: sound is not enabled in the simulator configuration")
+if options.get("SOUNDPACKS") != "CC-Sounds":
+    raise SystemExit("error: CC-Sounds is not selected in the simulator configuration")
+print("==> CC-Sounds is bundled, enabled, and selected")
+PY
+else
+    echo "error: simulator options were not saved; cannot verify sound settings" >&2
     status=1
 fi
 
