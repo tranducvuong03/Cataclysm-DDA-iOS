@@ -217,11 +217,18 @@ jobs:
         if: matrix.platform == 'iphoneos'
         run: scripts/package-ipa.sh build/iphoneos/Release-iphoneos/Cataclysm.app
 
+      - name: Name unsigned IPA artifact
+        id: ipa_artifact
+        if: matrix.platform == 'iphoneos' && github.event_name != 'pull_request'
+        run: |
+          source cdda.env
+          echo "name=Cataclysm-iOS-${CDDA_VERSION_STRING}-build-${GITHUB_RUN_NUMBER}-unsigned-ipa" >> "$GITHUB_OUTPUT"
+
       - name: Upload unsigned IPA for publishing
         if: matrix.platform == 'iphoneos' && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: unsigned-ipa
+          name: ${{ steps.ipa_artifact.outputs.name }}
           path: |
             cdda.env
             dist/Cataclysm-*-unsigned.ipa
@@ -238,7 +245,8 @@ jobs:
       - name: Download unsigned IPA
         uses: actions/download-artifact@v4
         with:
-          name: unsigned-ipa
+          pattern: Cataclysm-iOS-*-build-${{ github.run_number }}-unsigned-ipa
+          merge-multiple: true
           path: release-input
 
       - name: Publish IPA to GitHub Releases
