@@ -1,0 +1,29 @@
+From 8dbf3df80cc6fd121f50418d77341044cf1a9639 Mon Sep 17 00:00:00 2001
+From: Copilot <223556219+Copilot@users.noreply.github.com>
+Date: Sun, 1 Nov 2026 13:55:00 +0700
+Subject: [PATCH] Add save hook for iOS simulator smoke tests
+
+Invoke the game save from the main game loop when requested by autoplay. This
+avoids relying on keyboard bindings that are not delivered consistently by
+the iOS simulator input path.
+---
+ src/sdltiles.cpp | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/src/sdltiles.cpp b/src/sdltiles.cpp
+--- a/src/sdltiles.cpp
++++ b/src/sdltiles.cpp
+@@ -6053,5 +6053,13 @@ static void CheckMessages()
+ #if defined(CATA_IOS)
+     ios_poll_layout();
++    if( cata_ios::autoplay_consume_save_request() ) {
++        if( !g || !g->save() ) {
++            DebugLog( D_ERROR, DC_ALL ) << "[iOS autoplay] save failed";
++        } else {
++            DebugLog( D_INFO, DC_ALL ) << "[iOS autoplay] save completed";
++        }
++        needupdate = true;
++    }
+     if( cata_ios::screenshot_pending() ) {
+         needupdate = true;
+     }

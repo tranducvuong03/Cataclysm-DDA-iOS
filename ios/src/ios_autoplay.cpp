@@ -11,7 +11,6 @@
 //                         after 10 min)
 //   text=<utf-8>          type text (one SDL_EVENT_TEXT_INPUT per character)
 //   key=<name>            press and release a key (SDL key name, e.g. Return)
-//   key=Shift+<name>       press a key with Shift held, e.g. Shift+S
 //   tap=<x>,<y>           one-finger tap at normalized window coordinates
 //   swipe=<x0>,<y0>,<x1>,<y1>  one-finger swipe
 //   tap2=<x>,<y>          two-finger tap
@@ -60,6 +59,7 @@ std::mutex screenshot_mutex;
 std::string pending_screenshot;
 
 std::atomic<bool> keyboard_toggle_requested{ false };
+std::atomic<bool> save_requested{ false };
 
 // Updated by the game loop on every presented frame.
 std::atomic<Uint64> last_frame_tick{ 0 };
@@ -166,19 +166,15 @@ void run_step( const autoplay_step &step )
     if( step.action == "text" ) {
         push_text( step.arg );
     } else if( step.action == "key" ) {
-        std::string key_name = step.arg;
-        SDL_Keymod modifiers = SDL_KMOD_NONE;
-        constexpr char shift_prefix[] = "Shift+";
-        if( key_name.compare( 0, sizeof( shift_prefix ) - 1, shift_prefix ) == 0 ) {
-            modifiers = SDL_KMOD_SHIFT;
-            key_name.erase( 0, sizeof( shift_prefix ) - 1 );
-        }
-        const SDL_Keycode key = SDL_GetKeyFromName( key_name.c_str() );
+        const SDL_Keycode key = SDL_GetKeyFromName( step.arg.c_str() );
         if( key == SDLK_UNKNOWN ) {
-            std::fprintf( stderr, "[autoplay] unknown key %s\n", key_name.c_str() );
+            std::fprintf( stderr, "[autoplay] unknown key %s\n", step.arg.c_str() );
         } else {
-            push_key( key, modifiers );
+            push_key( key );
         }
+    } else if( step.action == "save" ) {
+        save_requested = true;
+        push_wakeup();
     } else if( step.action == "tap" || step.action == "tap2" ) {
         const std::vector<float> p = parse_floats( step.arg );
         if( p.size() >= 2 ) {
@@ -387,6 +383,11 @@ bool autoplay_frame( std::string &path )
 bool autoplay_consume_keyboard_toggle()
 {
     return keyboard_toggle_requested.exchange( false );
+}
+
+bool autoplay_consume_save_request()
+{
+    return save_requested.exchange( false );
 }
 
 } // namespace cata_ios
