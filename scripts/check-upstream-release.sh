@@ -2,7 +2,6 @@
 set -euo pipefail
 
 : "${GITHUB_OUTPUT:?GITHUB_OUTPUT must be set}"
-: "${GITHUB_REPOSITORY:?GITHUB_REPOSITORY must be set}"
 
 upstream_api="https://api.github.com/repos/CleverRaven/Cataclysm-DDA/releases?per_page=100"
 release_json="$(curl -fsSL "$upstream_api")"
@@ -14,14 +13,11 @@ fi
 
 ref="$(jq -r '.tag_name' <<<"$release")"
 version="${ref#cdda-experimental-}"
-translations_name="cdda-translations-$version.tar.gz"
 graphics_name="cdda-windows-with-graphics-x64-$version.zip"
-translations_digest="$(jq -r --arg name "$translations_name" '.assets[] | select(.name == $name) | .digest // empty' <<<"$release")"
 graphics_digest="$(jq -r --arg name "$graphics_name" '.assets[] | select(.name == $name) | .digest // empty' <<<"$release")"
 
-if [[ ! "$translations_digest" =~ ^sha256:[0-9a-f]{64}$ ||
-      ! "$graphics_digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
-    echo "Upstream release $ref does not have both expected assets and SHA-256 digests yet; will check again later."
+if [[ ! "$graphics_digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+    echo "Upstream release $ref does not have the expected graphics asset and SHA-256 digest yet; will check again later."
     echo "should_build=false" >> "$GITHUB_OUTPUT"
     exit 0
 fi
@@ -52,7 +48,6 @@ fi
     echo "should_build=true"
     echo "upstream_ref=$ref"
     echo "upstream_commit=$commit"
-    echo "translations_sha256=${translations_digest#sha256:}"
     echo "graphics_sha256=${graphics_digest#sha256:}"
 } >> "$GITHUB_OUTPUT"
 echo "A new upstream release is ready: $ref ($commit)."
