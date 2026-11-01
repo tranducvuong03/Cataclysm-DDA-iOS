@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: cataclysm-ios <cataclysm-ios@localhost>
+Date: Sun, 1 Nov 2026 12:00:00 +0700
+Subject: [PATCH] Fix SDL3 screenshot save result check
+
+SDL_image 3 returns true when IMG_SavePNG succeeds. The old integer-style
+check treated successful screenshots as failures and logged an error.
+---
+ src/sdltiles.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/sdltiles.cpp b/src/sdltiles.cpp
+--- a/src/sdltiles.cpp
++++ b/src/sdltiles.cpp
+@@ -7545,3 +7545,3 @@
+     // Save screenshot as PNG file
+-    if( printErrorIf( IMG_SavePNG( surface.get(), file_path.c_str() ) != 0,
++    if( printErrorIf( !IMG_SavePNG( surface.get(), file_path.c_str() ),
+                       std::string( "save_screenshot: cannot save screenshot file: " + file_path ).c_str() ) ) {

@@ -203,6 +203,11 @@ if grep -q "The tileset you're using has no 'unknown' tile defined!" \
     echo "error: a loaded tileset is missing its required 'unknown' fallback tile" >&2
     status=1
 fi
+if grep -Eq "save_screenshot: cannot (read data from SDL_Renderer|save screenshot file)" \
+        "$OUT/config/debug.log" 2>/dev/null; then
+    echo "error: the game could not save an autoplay screenshot (see debug.log above)" >&2
+    status=1
+fi
 if [[ -s "$OUT/config/options.json" ]]; then
     python3 - "$OUT/config/options.json" <<'PY' || status=1
 import json
@@ -213,7 +218,7 @@ options = {
     item.get("name"): item.get("value")
     for item in json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 }
-if options.get("SOUND_ENABLED") is not True:
+if options.get("SOUND_ENABLED") not in (True, "true"):
     raise SystemExit("error: sound is not enabled in the simulator configuration")
 if options.get("SOUNDPACKS") != "CC-Sounds":
     raise SystemExit("error: CC-Sounds is not selected in the simulator configuration")
