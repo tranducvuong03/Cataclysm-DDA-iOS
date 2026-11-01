@@ -46,7 +46,7 @@ done
 BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist")"
 
 # Main menu -> New Game -> Play Now! (default scenario), then play a little
-# with the touch controls and quicksave. "idle=<s>" waits until nothing was
+# with the touch controls and saving. "idle=<s>" waits until nothing was
 # drawn for <s> seconds (the main menu after start-up); "wait=DEFAULTMODE"
 # waits until the game asks for input in gameplay, i.e. world generation has
 # finished.
@@ -59,8 +59,10 @@ DEFAULT_SCRIPT+=";swipe=0.3,0.5,0.45,0.5;2:shot=06-swipe-move;text=."
 # Two-finger tap: inventory. Double tap: back out of it.
 DEFAULT_SCRIPT+=";2:tap2=0.3,0.5;2:shot=07-two-finger-tap-inventory"
 DEFAULT_SCRIPT+=";tap=0.3,0.5;0.1:tap=0.3,0.5;2:wait=DEFAULTMODE;shot=08-double-tap-back"
-# Game menu, then quicksave from it.
-DEFAULT_SCRIPT+=";key=Escape;2:shot=09-game-menu;text=e;5:shot=10-after-quicksave"
+# Save and quit uses the upstream default Shift+S binding and asks for
+# confirmation. This writes the character save without relying on an optional
+# quicksave keybinding.
+DEFAULT_SCRIPT+=";text=S;2:shot=09-save-confirmation;text=y;5:shot=10-after-save"
 DEFAULT_SCRIPT+=";log=autoplay-finished"
 SCRIPT="${SMOKE_SCRIPT:-$DEFAULT_SCRIPT}"
 
@@ -253,7 +255,7 @@ if grep -n "Permission denied\|Read-only file system\|Operation not permitted" \
     echo "error: the game tried to write where it may not (see above)" >&2
     status=1
 fi
-# The quicksave at the end of the default script writes the character.
+# The save-and-quit action at the end of the default script writes the character.
 if [[ -z "${SMOKE_SCRIPT:-}" && -z "$(find "$DOCS/save" -name '*.sav*' -print -quit 2>/dev/null)" ]]; then
     echo "error: no saved character in $DOCS/save" >&2
     status=1
