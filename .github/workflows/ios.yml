@@ -28,15 +28,12 @@ jobs:
       should_build: ${{ steps.check.outputs.should_build }}
       upstream_ref: ${{ steps.check.outputs.upstream_ref }}
       upstream_commit: ${{ steps.check.outputs.upstream_commit }}
-      translations_sha256: ${{ steps.check.outputs.translations_sha256 }}
       graphics_sha256: ${{ steps.check.outputs.graphics_sha256 }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Check upstream release
         id: check
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: bash scripts/check-upstream-release.sh
 
   build:
@@ -66,7 +63,6 @@ jobs:
         env:
           UPSTREAM_REF: ${{ needs.check_upstream.outputs.upstream_ref }}
           UPSTREAM_COMMIT: ${{ needs.check_upstream.outputs.upstream_commit }}
-          TRANSLATIONS_SHA256: ${{ needs.check_upstream.outputs.translations_sha256 }}
           GRAPHICS_SHA256: ${{ needs.check_upstream.outputs.graphics_sha256 }}
         run: |
           python3 - "$GITHUB_WORKSPACE/cdda.env" <<'PY'
@@ -80,7 +76,6 @@ jobs:
               "CDDA_REF": (os.environ["UPSTREAM_REF"], r"cdda-experimental-\d{4}-\d{2}-\d{2}-\d{4}"),
               "CDDA_COMMIT": (os.environ["UPSTREAM_COMMIT"], r"[0-9a-f]{40}"),
               "CDDA_VERSION_STRING": (os.environ["UPSTREAM_REF"], r"cdda-experimental-\d{4}-\d{2}-\d{2}-\d{4}"),
-              "CDDA_TRANSLATIONS_SHA256": (os.environ["TRANSLATIONS_SHA256"], r"[0-9a-f]{64}"),
               "CDDA_GRAPHICS_SHA256": (os.environ["GRAPHICS_SHA256"], r"[0-9a-f]{64}"),
           }
           text = path.read_text()
@@ -164,7 +159,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: build/translations
-          key: cdda-translations-${{ needs.check_upstream.outputs.upstream_ref || hashFiles('cdda.env') }}
+          key: cdda-translations-2026-10-30-2308
 
       - name: Compile translations
         run: scripts/compile-translations.sh
@@ -298,7 +293,6 @@ jobs:
         env:
           UPSTREAM_REF: ${{ needs.check_upstream.outputs.upstream_ref }}
           UPSTREAM_COMMIT: ${{ needs.check_upstream.outputs.upstream_commit }}
-          TRANSLATIONS_SHA256: ${{ needs.check_upstream.outputs.translations_sha256 }}
           GRAPHICS_SHA256: ${{ needs.check_upstream.outputs.graphics_sha256 }}
         run: |
           python3 - "$GITHUB_WORKSPACE/cdda.env" <<'PY'
@@ -312,7 +306,6 @@ jobs:
               "CDDA_REF": os.environ["UPSTREAM_REF"],
               "CDDA_COMMIT": os.environ["UPSTREAM_COMMIT"],
               "CDDA_VERSION_STRING": os.environ["UPSTREAM_REF"],
-              "CDDA_TRANSLATIONS_SHA256": os.environ["TRANSLATIONS_SHA256"],
               "CDDA_GRAPHICS_SHA256": os.environ["GRAPHICS_SHA256"],
           }
           text = path.read_text()

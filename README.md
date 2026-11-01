@@ -149,9 +149,10 @@ source archives for release tags, but they are not uploaded by this workflow and
 to install the IPA. Check the workflow's Simulator test results before installing.
 
 The workflow also checks the upstream releases every 30 minutes for a new
-`cdda-experimental-YYYY-MM-DD-HHMM` release. Once its official translation and graphics assets
-and SHA-256 digests are available, it builds that exact version, runs the same smoke tests, and
-publishes a prerelease titled with the upstream version. The uploaded IPA filename ends in
+`cdda-experimental-YYYY-MM-DD-HHMM` release. Once its graphics asset and SHA-256 digest are
+available, it builds that exact version using the pinned
+`cdda-translations-2026-10-30-2308.tar.gz` archive, runs the same smoke tests, and publishes a
+prerelease titled with the upstream version. The uploaded IPA filename ends in
 `-unsigned.ipa`. After a successful build and release, it also updates `cdda.env` on `main` with
 the upstream tag, commit, and asset checksums. Existing upstream versions are not built again.
 If an upstream change is incompatible with the iOS patches or fails a build or smoke test, no
@@ -161,29 +162,31 @@ playback because the iOS Simulator may not expose an audio output device.
 
 ### Change the upstream version and build a new IPA
 
-The upstream tag, exact source commit, displayed game version, translation checksum, and graphics
-archive checksum are pinned together in `cdda.env`. Follow these steps to build a newer upstream
-release.
+The upstream tag, exact source commit, displayed game version, and graphics archive checksum are
+pinned in `cdda.env`. Translation builds always use
+`cdda-translations-2026-10-30-2308.tar.gz` with SHA-256
+`92abf0aaf85936fb1fa238e7368b96003c701293018640f99c6f78bfcfe66e4e`; keep
+`CDDA_TRANSLATIONS_REF` and `CDDA_TRANSLATIONS_SHA256` unchanged when updating the game. Follow
+these steps to build a newer upstream release.
 
 1. Find the new upstream release on
    [CleverRaven/Cataclysm-DDA](https://github.com/CleverRaven/Cataclysm-DDA/releases). Record its
-   tag and full 40-character commit SHA. Find the SHA-256 digests for that same release's
-   translation archive and graphics archive.
-2. Update these five values in `cdda.env`:
+   tag and full 40-character commit SHA, plus the SHA-256 digest for that release's graphics
+   archive.
+2. Update these four values in `cdda.env`:
 
 ```sh
 CDDA_REF=cdda-experimental-YYYY-MM-DD-HHMM
 CDDA_COMMIT=<full-40-character-commit-sha-for-that-tag>
 CDDA_VERSION_STRING=cdda-experimental-YYYY-MM-DD-HHMM
-CDDA_TRANSLATIONS_SHA256=<sha256-of-that-release-translation-archive>
 CDDA_GRAPHICS_SHA256=<sha256-of-that-release-graphics-archive>
 ```
 
-   Keep `CDDA_REPO` unchanged. The translation archive is normally named
-   `cdda-translations-YYYY-MM-DD-HHMM.tar.gz`; the graphics archive is normally named
-   `cdda-windows-with-graphics-x64-YYYY-MM-DD-HHMM.zip`. These asset names omit the
-   `cdda-experimental-` prefix. Copy each asset's `sha256:` digest from GitHub without the prefix.
-   The commit SHA is not a checksum; do not use it for either `*_SHA256` value.
+   Keep `CDDA_REPO`, `CDDA_TRANSLATIONS_REF`, and `CDDA_TRANSLATIONS_SHA256` unchanged. The
+   graphics archive is normally named
+   `cdda-windows-with-graphics-x64-YYYY-MM-DD-HHMM.zip`. This asset name omits the
+   `cdda-experimental-` prefix. Copy the graphics asset's `sha256:` digest from GitHub without the
+   prefix. The commit SHA is not a checksum.
 3. Recreate the upstream checkout so the new version is used. **Back up any local work in `cdda/`
    first**: `--force` deletes that generated checkout.
 

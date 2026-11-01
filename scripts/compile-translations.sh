@@ -10,6 +10,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../cdda.env
 source "$ROOT/cdda.env"
 CDDA="${CDDA_DIR:-$ROOT/cdda}"
+: "${CDDA_TRANSLATIONS_REF:?CDDA_TRANSLATIONS_REF is not set in cdda.env}"
 
 if ! command -v msgfmt >/dev/null 2>&1; then
     if command -v brew >/dev/null 2>&1 && [[ -x "$(brew --prefix gettext 2>/dev/null)/bin/msgfmt" ]]; then
@@ -38,15 +39,15 @@ if [[ "$po_count" == 0 || ! -s "$CDDA/lang/po/vi.po" ]]; then
     fi
 
     archive_dir="$ROOT/build/translations"
-    archive="$archive_dir/cdda-translations-$CDDA_VERSION_STRING.tar.gz"
+    translations_version="${CDDA_TRANSLATIONS_REF#cdda-experimental-}"
+    archive="$archive_dir/cdda-translations-$translations_version.tar.gz"
     mkdir -p "$archive_dir"
 
     if [[ ! -f "$archive" ]] ||
        ! printf '%s  %s\n' "$CDDA_TRANSLATIONS_SHA256" "$archive" | shasum -a 256 -c --status; then
         rm -f "$archive"
-        translations_version="${CDDA_VERSION_STRING#cdda-experimental-}"
-        url="https://github.com/CleverRaven/Cataclysm-DDA/releases/download/$CDDA_REF/cdda-translations-$translations_version.tar.gz"
-        echo "==> Downloading official translations for $CDDA_VERSION_STRING"
+        url="https://github.com/CleverRaven/Cataclysm-DDA/releases/download/$CDDA_TRANSLATIONS_REF/cdda-translations-$translations_version.tar.gz"
+        echo "==> Downloading official translations for $CDDA_TRANSLATIONS_REF"
         curl -fL --retry 3 --output "$archive" "$url"
         printf '%s  %s\n' "$CDDA_TRANSLATIONS_SHA256" "$archive" | shasum -a 256 -c
     fi
