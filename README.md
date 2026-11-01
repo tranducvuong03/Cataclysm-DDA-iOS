@@ -161,6 +161,10 @@ IPA release is published and `cdda.env` is left unchanged.
 To check immediately instead of waiting for the next scheduled run, open **Actions**, select
 **iOS**, then **Run workflow**. This checks for a new upstream version and builds it only if one
 is ready.
+The release job uses the repository's `GITHUB_TOKEN` by default. If GitHub returns
+`403: Resource not accessible by integration` while publishing, add a repository Actions secret
+named `RELEASE_TOKEN` containing a fine-grained personal access token with **Contents: Read and
+write** access to this repository. The workflow uses that token for release publishing.
 GitHub may delay or drop scheduled runs during periods of high load, so these checks are not
 guaranteed to start at their exact scheduled times. Every run that GitHub starts is visible in the
 Actions tab.
