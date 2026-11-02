@@ -1,0 +1,29 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Copilot <223556219+Copilot@users.noreply.github.com>
+Date: Mon, 2 Nov 2026 00:00:00 +0000
+Subject: [PATCH] Defer shortcut auto-add until game data is ready
+
+The SDL event pump can run while dynamic JSON data is loading. Do not query
+hostile creatures or update contextual shortcuts until the data loader has
+finished finalizing the loaded definitions.
+---
+ src/sdltiles.cpp | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/src/sdltiles.cpp b/src/sdltiles.cpp
+--- a/src/sdltiles.cpp
++++ b/src/sdltiles.cpp
+@@ -51,3 +51,4 @@
+ #include "hash_utils.h"
+ #include "horde_entity.h"
++#include "init.h"
+ #include "input.h"
+@@ -5874,3 +5874,4 @@ static void CheckMessages()
+         // Check action weightings and auto-add any immediate-surrounding actions as quick shortcuts
+         // This code is based heavily off action.cpp handle_action_menu() which puts common shortcuts at the top
+-        if( is_default_mode && get_option<bool>( "ANDROID_SHORTCUT_AUTOADD" ) ) {
++        if( DynamicDataLoader::get_instance().is_data_finalized() && is_default_mode &&
++            get_option<bool>( "ANDROID_SHORTCUT_AUTOADD" ) ) {
+             static int last_moves_since_last_save = -1;
+             if( last_moves_since_last_save != g->get_moves_since_last_save() ) {
+                 last_moves_since_last_save = g->get_moves_since_last_save();
