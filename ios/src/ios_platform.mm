@@ -273,6 +273,54 @@ cata_ios::pixel_rect to_pixels( UIView *view, CGRect rect )
     return result;
 }
 
+bool copy_missing_contents( NSFileManager *file_manager, NSString *source_path,
+                            NSString *destination_path )
+{
+    BOOL source_is_directory = NO;
+    if( ![file_manager fileExistsAtPath: source_path isDirectory: &source_is_directory] ||
+        !source_is_directory ) {
+        NSLog( @"Cataclysm: required resource directory is missing: %@", source_path );
+        return false;
+    }
+
+    NSError *error = nil;
+    if( ![file_manager createDirectoryAtPath: destination_path withIntermediateDirectories: YES
+                                  attributes: nil error: &error] ) {
+        NSLog( @"Cataclysm: cannot create user directory %@: %@", destination_path, error );
+        return false;
+    }
+
+    NSDirectoryEnumerator<NSString *> *entries = [file_manager enumeratorAtPath: source_path];
+    if( !entries ) {
+        NSLog( @"Cataclysm: cannot enumerate bundled resources: %@", source_path );
+        return false;
+    }
+    for( NSString *relative_path in entries ) {
+        NSString *source = [source_path stringByAppendingPathComponent: relative_path];
+        NSString *destination = [destination_path stringByAppendingPathComponent: relative_path];
+        BOOL is_directory = NO;
+        if( ![file_manager fileExistsAtPath: source isDirectory: &is_directory] ) {
+            NSLog( @"Cataclysm: cannot read bundled resource: %@", source );
+            return false;
+        }
+        if( is_directory ) {
+            error = nil;
+            if( ![file_manager createDirectoryAtPath: destination withIntermediateDirectories: YES
+                                          attributes: nil error: &error] ) {
+                NSLog( @"Cataclysm: cannot create user directory %@: %@", destination, error );
+                return false;
+            }
+        } else if( ![file_manager fileExistsAtPath: destination] ) {
+            error = nil;
+            if( ![file_manager copyItemAtPath: source toPath: destination error: &error] ) {
+                NSLog( @"Cataclysm: cannot copy %@ to %@: %@", source, destination, error );
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 } // namespace
 
 namespace cata_ios
@@ -288,6 +336,27 @@ std::string user_dir()
     NSArray<NSString *> *paths =
         NSSearchPathForDirectoriesInDomains( NSDocumentDirectory, NSUserDomainMask, YES );
     return with_trailing_slash( paths.firstObject );
+}
+
+bool prepare_user_customization_dirs()
+{
+    NSString *documents = [NSSearchPathForDirectoriesInDomains( NSDocumentDirectory,
+                         NSUserDomainMask, YES ) firstObject];
+    NSString *resources = [[NSBundle mainBundle] resourcePath];
+    if( !documents || !resources ) {
+        NSLog( @"Cataclysm: cannot locate Documents or app resources" );
+        return false;
+    }
+
+    NSFileManager *file_manager = [NSFileManager defaultManager];
+    NSString *user_data = [documents stringByAppendingPathComponent: @"data"];
+    NSString *user_font = [user_data stringByAppendingPathComponent: @"font"];
+    NSString *bundle_data = [resources stringByAppendingPathComponent: @"data"];
+    NSString *bundle_font = [bundle_data stringByAppendingPathComponent: @"font"];
+    NSString *user_locale = [documents stringByAppendingPathComponent: @"lang/mo"];
+    NSString *bundle_locale = [resources stringByAppendingPathComponent: @"lang/mo"];
+    return copy_missing_contents( file_manager, bundle_font, user_font ) &&
+           copy_missing_contents( file_manager, bundle_locale, user_locale );
 }
 
 std::string cache_dir()

@@ -131,6 +131,28 @@ DATA_DIR="$(xcrun simctl get_app_container "$UDID" "$BUNDLE_ID" data)"
 DOCS="$DATA_DIR/Documents"
 echo "==> App documents: $DOCS"
 
+documents_assets_ready() {
+    [[ -s "$DOCS/data/font/Terminus.ttf" ]] || return 1
+    local catalog relative found=0
+    while IFS= read -r -d '' catalog; do
+        found=1
+        relative="${catalog#"$APP/lang/mo/"}"
+        [[ -s "$DOCS/lang/mo/$relative" ]] || return 1
+    done < <(find "$APP/lang/mo" -type f -name cataclysm-dda.mo -print0)
+    [[ "$found" == 1 ]]
+}
+
+for _ in {1..30}; do
+    documents_assets_ready && break
+    sleep 1
+done
+
+asset_status=0
+if ! documents_assets_ready; then
+    echo "error: editable font or language catalogs are missing from Documents" >&2
+    asset_status=1
+fi
+
 app_running() {
     kill -0 "$APP_PID" 2>/dev/null
 }
@@ -139,7 +161,7 @@ autoplay_finished() {
     grep -q "autoplay-finished\|\[autoplay\] done" "$OUT/stderr.log" 2>/dev/null
 }
 
-status=0
+status=$asset_status
 start=$SECONDS
 while true; do
     if autoplay_finished; then

@@ -101,9 +101,18 @@ under *On My iPhone/iPad → Cataclysm* and in Finder when the device is connect
 | `save/` | Worlds and characters |
 | `config/` | Options, keybindings, `debug.log` and crash logs |
 | `mods/` | Your own mods, one folder per mod |
+| `data/font/` | Fonts; add or replace `.ttf`, `.otf`, or bitmap font files here |
+| `lang/mo/<language>/LC_MESSAGES/` | Installed language catalogs; catalogs in Documents take precedence |
 | `gfx/` | Extra tilesets |
 | `sound/` | Additional soundpacks; CC-Sounds is bundled with the app |
 | `memorial/`, `achievements/` | Graveyard and achievements |
+
+The app creates `data/font/` and `lang/mo/` in Documents on first launch. It seeds
+them with the bundled fonts and all compiled language catalogs, and adds newly
+bundled files after an app update without overwriting files you have customized.
+Font changes take effect after restarting the app. Language catalogs are GNU
+gettext `.mo` files; use a matching compiled catalog named
+`cataclysm-dda.mo` inside the language's `LC_MESSAGES/` folder.
 
 To move a game between devices or to and from desktop Cataclysm built from the same upstream
 revision, copy the world folder in `save/`.

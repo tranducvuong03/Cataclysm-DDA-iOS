@@ -1,0 +1,85 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Copilot <223556219+Copilot@users.noreply.github.com>
+Date: Fri, 6 Nov 2026 20:00:00 +0700
+Subject: [PATCH] Expose editable fonts and all languages in Documents
+
+Seed Documents/data/font and Documents/lang/mo from the app bundle without
+overwriting user files. Prefer those writable folders when loading fonts and
+translations so users can add or customize assets in Files.
+---
+ src/main.cpp       |  3 +++
+ src/sdl_font.cpp   | 21 +++++++++++++++++++--
+ src/translations.cpp |  3 +++
+ 3 files changed, 26 insertions(+), 1 deletion(-)
+
+diff --git a/src/main.cpp b/src/main.cpp
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -939,3 +939,6 @@ int main( int argc, const char *argv[] )
+     PATH_INFO::init_user_dir( cata_ios::user_dir() );
+     PATH_INFO::set_standard_filenames();
++    if( !cata_ios::prepare_user_customization_dirs() ) {
++        return 1;
++    }
+ #endif
+diff --git a/src/sdl_font.cpp b/src/sdl_font.cpp
+--- a/src/sdl_font.cpp
++++ b/src/sdl_font.cpp
+@@ -83,14 +83,28 @@ std::unique_ptr<Font> Font::load_font( SDL_Renderer_Ptr &renderer, Uint32 pixel_
+                                        const palette_array &palette,
+                                        const bool fontblending )
+ {
++#if defined(CATA_IOS)
++    std::string font_name = typeface;
++    if( font_name.compare( 0, 10, "data/font/" ) == 0 ) {
++        font_name = font_name.substr( 10 );
++    }
++#endif
+     if( is_bitmap_typeface( typeface ) ) {
+         // Seems to be an image file, not a font.
+         // Try to load as bitmap font from user font dir, then from font dir.
++#if defined(CATA_IOS)
++        try {
++            return std::unique_ptr<Font>( std::make_unique<BitmapFont>( renderer, pixel_format, width,
++                                          height, palette, PATH_INFO::user_dir() + "data/font/" + font_name ) );
++        } catch( std::exception &err ) {
++            dbg( D_INFO ) << "Ignoring unusable custom bitmap font: " << err.what();
++        }
++#endif
+         try {
+             return std::unique_ptr<Font>( std::make_unique<BitmapFont>( renderer, pixel_format, width, height,
+                                           palette,
+                                           typeface ) );
+         } catch( std::exception & ) {
+             try {
+                 return std::unique_ptr<Font>( std::make_unique<BitmapFont>( renderer, pixel_format, width, height,
+                                               palette,
+@@ -111,6 +124,8 @@ std::unique_ptr<Font> Font::load_font( SDL_Renderer_Ptr &renderer, Uint32 pixel_
+     std::string ttf_path = typeface;
+ #if defined(CATA_IOS)
+-    if( ttf_path.compare( 0, 5, "data/" ) == 0 ) {
++    if( ttf_path.compare( 0, 10, "data/font/" ) == 0 ) {
++        ttf_path = ttf_path.substr( 10 );
++    } else if( ttf_path.compare( 0, 5, "data/" ) == 0 ) {
+         ttf_path = PATH_INFO::datadir() + ttf_path.substr( 5 );
+     }
+ #endif
+@@ -242,5 +257,8 @@ CachedTTFFont::CachedTTFFont(
+     }
+     bool add_prefix = true;
+     std::vector<std::string> known_prefixes = {
++#if defined(CATA_IOS)
++        PATH_INFO::user_dir() + "data/font/",
++#endif
+         PATH_INFO::user_font(), PATH_INFO::fontdir()
+     };
+diff --git a/src/translations.cpp b/src/translations.cpp
+--- a/src/translations.cpp
++++ b/src/translations.cpp
+@@ -46,3 +46,6 @@ std::string locale_dir()
+ {
+     std::string loc_dir = PATH_INFO::langdir();
++#if defined(CATA_IOS)
++    loc_dir = PATH_INFO::user_dir() + "lang/mo/";
++#endif
+ #if defined(LOCALIZE)
