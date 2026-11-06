@@ -28,6 +28,10 @@ std::string resource_dir();
 // This is the app's Documents folder, which the Files app can browse.
 std::string user_dir();
 
+// Create editable font and translation folders in Documents and seed them
+// with bundled assets that are not already present.
+bool prepare_user_customization_dirs();
+
 // Writable directory for regenerable data (Library/Caches), with a trailing
 // slash. iOS may clear it when storage runs low.
 std::string cache_dir();
