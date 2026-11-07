@@ -1,0 +1,105 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Copilot <223556219+Copilot@users.noreply.github.com>
+Date: Sat, 7 Nov 2026 21:51:02 +0700
+Subject: [PATCH] Add pause button to vehicle D-pad
+
+Draw a center button labeled with the period key and send the default pause input when tapped while driving.
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
+---
+ src/sdltiles.cpp | 40 ++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 38 insertions(+), 2 deletions(-)
+
+diff --git a/src/sdltiles.cpp b/src/sdltiles.cpp
+index 36e513f..3e95738 100644
+--- a/src/sdltiles.cpp
++++ b/src/sdltiles.cpp
+@@ -4961,6 +4961,7 @@ static bool is_quick_shortcut_touch = false;
+ static bool quick_shortcuts_toggle_handled = false;
+ #if defined(CATA_IOS)
+ static bool is_vehicle_dpad_touch = false;
++static bool is_vehicle_dpad_center_touch = false;
+ static touch_joystick::direction vehicle_dpad_direction = touch_joystick::direction::none;
+ #endif
+ // the current finger repeat delay - will be somewhere between the min/max values depending on user input
+@@ -5391,6 +5392,7 @@ static void reset_touch_state()
+     finger_repeat_time = 0;
+ #if defined(CATA_IOS)
+     is_vehicle_dpad_touch = false;
++    is_vehicle_dpad_center_touch = false;
+     vehicle_dpad_direction = touch_joystick::direction::none;
+ #endif
+ }
+@@ -5697,6 +5699,13 @@ static touch_joystick::direction vehicle_dpad_direction_at( const float x, const
+     return column == 0 ? direction::down_left : column == 1 ? direction::down : direction::down_right;
+ }
+ 
++static bool vehicle_dpad_center_at( const float x, const float y )
++{
++    const vehicle_dpad_layout layout = get_vehicle_dpad_layout();
++    return x >= layout.x + layout.cell && x < layout.x + 2.0f * layout.cell &&
++           y >= layout.y + layout.cell && y < layout.y + 2.0f * layout.cell;
++}
++
+ static void draw_vehicle_dpad_arrow( const SDL_FPoint &center, const float dx, const float dy,
+                                      const float size, const SDL_FColor &color )
+ {
+@@ -5770,6 +5779,24 @@ void draw_vehicle_dpad()
+             draw_vehicle_dpad_arrow( center, vector.x, vector.y, cell.w - inset, arrow_color );
+         }
+     }
++    const SDL_FRect center_cell{ layout.x + layout.cell + gap, layout.y + layout.cell + gap,
++                                 layout.cell - gap * 2.0f, layout.cell - gap * 2.0f };
++    const SDL_Rect center_button{ static_cast<int>( center_cell.x ), static_cast<int>( center_cell.y ),
++                                  static_cast<int>( center_cell.w ), static_cast<int>( center_cell.h )
++                                };
++    const bool center_active = is_vehicle_dpad_touch && is_vehicle_dpad_center_touch;
++    const Uint8 center_alpha = static_cast<Uint8>( ( center_active ? selected.a : button.a ) * 255.0f );
++    SetRenderDrawColor( renderer, center_active ? 255 : 0, center_active ? 255 : 0,
++                        center_active ? 255 : 0, center_alpha );
++    RenderFillRect( renderer, &center_button );
++    const float text_scale = std::max( 1.0f, std::floor( center_button.h * 0.45f / font->height ) );
++    RenderSetScale( renderer, text_scale, text_scale );
++    font->OutputChar( renderer, ".", point( static_cast<int>( ( center_cell.x + center_cell.w * 0.5f ) /
++                      text_scale - font->width * 0.5f ),
++                      static_cast<int>( ( center_cell.y + center_cell.h * 0.5f ) /
++                      text_scale - font->height * 0.5f ) ),
++                      center_active ? 0 : get_option<int>( "ANDROID_SHORTCUT_COLOR" ), 1.0f );
++    RenderSetScale( renderer, 1.0f, 1.0f );
+     SetRenderDrawBlendMode( renderer, SDL_BLENDMODE_NONE );
+ }
+ #endif
+@@ -6921,6 +6948,7 @@ static void CheckMessages()
+ #if defined(CATA_IOS)
+                         if( is_vehicle_dpad_touch ) {
+                             vehicle_dpad_direction = vehicle_dpad_direction_at( finger_curr_x, finger_curr_y );
++                            is_vehicle_dpad_center_touch = vehicle_dpad_center_at( finger_curr_x, finger_curr_y );
+                             needupdate = true;
+                             ui_manager::redraw_invalidated();
+                             break;
+@@ -6966,7 +6994,10 @@ static void CheckMessages()
+                         vehicle_dpad_direction = vehicle_dpad_active() ?
+                                                  vehicle_dpad_direction_at( finger_down_x, finger_down_y ) :
+                                                  touch_joystick::direction::none;
+-                        is_vehicle_dpad_touch = vehicle_dpad_direction != touch_joystick::direction::none;
++                        is_vehicle_dpad_center_touch = vehicle_dpad_active() &&
++                                                       vehicle_dpad_center_at( finger_down_x, finger_down_y );
++                        is_vehicle_dpad_touch = vehicle_dpad_direction != touch_joystick::direction::none ||
++                                                is_vehicle_dpad_center_touch;
+ #endif
+                         if( !is_quick_shortcut_touch ) {
+                             update_finger_repeat_delay();
+@@ -6975,7 +7006,12 @@ static void CheckMessages()
+                         needupdate = true; // ensure virtual joystick and quick shortcuts redraw as we interact
+ #if defined(CATA_IOS)
+                         if( is_vehicle_dpad_touch ) {
+-                            handle_finger_input( ticks );
++                            if( is_vehicle_dpad_center_touch ) {
++                                last_input = input_event( '.', input_event_t::keyboard_char );
++                                imclient->process_cata_input( last_input );
++                            } else {
++                                handle_finger_input( ticks );
++                            }
+                         }
+ #endif
+                     } else if( finger_slot_for( GetFingerID( ev ), true ) == 1 ) {
