@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Copilot <223556219+Copilot@users.noreply.github.com>
+Date: Sat, 7 Nov 2026 21:18:30 +0700
+Subject: [PATCH] Fix iOS vehicle D-pad build errors
+
+Use the public player-character accessor and keep dimensions in the same floating-point type when calculating the D-pad layout.
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
+---
+ src/sdltiles.cpp | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/src/sdltiles.cpp b/src/sdltiles.cpp
+index e449ebb..36e513f 100644
+--- a/src/sdltiles.cpp
++++ b/src/sdltiles.cpp
+@@ -5658,7 +5658,8 @@ struct vehicle_dpad_layout {
+ 
+ static bool vehicle_dpad_active()
+ {
+-    return g && g->u.controlling_vehicle && touch_input_context.get_category() == "DEFAULTMODE";
++    return g && get_player_character().controlling_vehicle &&
++           touch_input_context.get_category() == "DEFAULTMODE";
+ }
+ 
+ static vehicle_dpad_layout get_vehicle_dpad_layout()
+@@ -5668,7 +5669,8 @@ static vehicle_dpad_layout get_vehicle_dpad_layout()
+     const float shortcuts_height = quick_shortcuts_enabled ? quick_shortcut_height() : 0.0f;
+     const float usable_height = std::max( 1.0f, ios_safe_area.h - shortcuts_height - 2.0f * margin );
+     const float cell = std::min( { std::min( ios_safe_area.w * 0.30f, usable_height * 0.82f ) / 3.0f,
+-                                   68.0f * scale, std::min( ios_safe_area.w, usable_height ) / 3.0f } );
++                                   68.0f * scale,
++                                   std::min( static_cast<float>( ios_safe_area.w ), usable_height ) / 3.0f } );
+     return vehicle_dpad_layout{ ios_safe_area.x + margin,
+                                 ios_safe_area.y + ios_safe_area.h - shortcuts_height - margin - 3.0f * cell,
+                                 cell
