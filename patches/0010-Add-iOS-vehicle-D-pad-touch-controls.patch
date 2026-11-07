@@ -1,0 +1,293 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Copilot <223556219+Copilot@users.noreply.github.com>
+Date: Sat, 7 Nov 2026 20:52:14 +0700
+Subject: [PATCH] Add iOS vehicle D-pad touch controls
+
+Show a fixed eight-way D-pad while driving and route button presses through the existing touch joystick input mapping. Keep normal touch controls unchanged outside vehicle operation.
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
+---
+ src/sdltiles.cpp | 191 ++++++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 187 insertions(+), 4 deletions(-)
+
+diff --git a/src/sdltiles.cpp b/src/sdltiles.cpp
+index 5c2e410..e449ebb 100644
+--- a/src/sdltiles.cpp
++++ b/src/sdltiles.cpp
+@@ -947,6 +947,9 @@ void draw_virtual_joystick();
+ 
+ static bool quick_shortcuts_enabled = true;
+ #endif
++#if defined(CATA_IOS)
++void draw_vehicle_dpad();
++#endif
+ 
+ #if defined(__ANDROID__)
+ // onNativeImeInsetsChanged and onNativeSafeAreaChanged fire from the Android UI
+@@ -1373,6 +1376,9 @@ void refresh_display()
+         draw_quick_shortcuts();
+     }
+     draw_virtual_joystick();
++#if defined(CATA_IOS)
++    draw_vehicle_dpad();
++#endif
+ #endif
+ #if defined(CATA_IOS)
+     // Automated tests capture exactly what is about to be shown.
+@@ -4953,6 +4959,10 @@ static bool is_three_finger_touch = false;
+ // did this touch start on a quick shortcut?
+ static bool is_quick_shortcut_touch = false;
+ static bool quick_shortcuts_toggle_handled = false;
++#if defined(CATA_IOS)
++static bool is_vehicle_dpad_touch = false;
++static touch_joystick::direction vehicle_dpad_direction = touch_joystick::direction::none;
++#endif
+ // the current finger repeat delay - will be somewhere between the min/max values depending on user input
+ uint32_t finger_repeat_delay = 500;
+ #if defined(__ANDROID__)
+@@ -5379,6 +5389,10 @@ static void reset_touch_state()
+     is_three_finger_touch = false;
+     finger_down_time = 0;
+     finger_repeat_time = 0;
++#if defined(CATA_IOS)
++    is_vehicle_dpad_touch = false;
++    vehicle_dpad_direction = touch_joystick::direction::none;
++#endif
+ }
+ 
+ // system took the touch over, e.g. for an edge gesture: drop the whole gesture
+@@ -5635,6 +5649,129 @@ static float android_touch_speed()
+                                            android_touch_deadzone(), android_touch_repeat_range() );
+ }
+ 
++#if defined(CATA_IOS)
++struct vehicle_dpad_layout {
++    float x;
++    float y;
++    float cell;
++};
++
++static bool vehicle_dpad_active()
++{
++    return g && g->u.controlling_vehicle && touch_input_context.get_category() == "DEFAULTMODE";
++}
++
++static vehicle_dpad_layout get_vehicle_dpad_layout()
++{
++    const float scale = cata_ios::display_scale();
++    const float margin = 8.0f * scale;
++    const float shortcuts_height = quick_shortcuts_enabled ? quick_shortcut_height() : 0.0f;
++    const float usable_height = std::max( 1.0f, ios_safe_area.h - shortcuts_height - 2.0f * margin );
++    const float cell = std::min( { std::min( ios_safe_area.w * 0.30f, usable_height * 0.82f ) / 3.0f,
++                                   68.0f * scale, std::min( ios_safe_area.w, usable_height ) / 3.0f } );
++    return vehicle_dpad_layout{ ios_safe_area.x + margin,
++                                ios_safe_area.y + ios_safe_area.h - shortcuts_height - margin - 3.0f * cell,
++                                cell
++                              };
++}
++
++static touch_joystick::direction vehicle_dpad_direction_at( const float x, const float y )
++{
++    const vehicle_dpad_layout layout = get_vehicle_dpad_layout();
++    if( layout.cell <= 0.0f || x < layout.x || y < layout.y ||
++        x >= layout.x + layout.cell * 3.0f || y >= layout.y + layout.cell * 3.0f ) {
++        return touch_joystick::direction::none;
++    }
++
++    const int column = static_cast<int>( ( x - layout.x ) / layout.cell );
++    const int row = static_cast<int>( ( y - layout.y ) / layout.cell );
++    using touch_joystick::direction;
++    if( row == 0 ) {
++        return column == 0 ? direction::up_left : column == 1 ? direction::up : direction::up_right;
++    }
++    if( row == 1 ) {
++        return column == 0 ? direction::left : column == 2 ? direction::right : direction::none;
++    }
++    return column == 0 ? direction::down_left : column == 1 ? direction::down : direction::down_right;
++}
++
++static void draw_vehicle_dpad_arrow( const SDL_FPoint &center, const float dx, const float dy,
++                                     const float size, const SDL_FColor &color )
++{
++    const float tip_x = center.x + dx * size * 0.28f;
++    const float tip_y = center.y + dy * size * 0.28f;
++    const float base_x = center.x - dx * size * 0.06f;
++    const float base_y = center.y - dy * size * 0.06f;
++    const float half_width = size * 0.14f;
++    const std::array<SDL_Vertex, 3> vertices = { {
++            { { tip_x, tip_y }, color, { 0.0f, 0.0f } },
++            { { base_x - dy * half_width, base_y + dx * half_width }, color, { 0.0f, 0.0f } },
++            { { base_x + dy * half_width, base_y - dx * half_width }, color, { 0.0f, 0.0f } },
++        }
++    };
++    static constexpr std::array<int, 3> indices = { 0, 1, 2 };
++    RenderGeometry( renderer, nullptr, vertices.data(), static_cast<int>( vertices.size() ),
++                    indices.data(), static_cast<int>( indices.size() ) );
++}
++
++void draw_vehicle_dpad()
++{
++    if( !vehicle_dpad_active() || ios_safe_area.w <= 0 || ios_safe_area.h <= 0 ) {
++        return;
++    }
++
++    const vehicle_dpad_layout layout = get_vehicle_dpad_layout();
++    const float scale = cata_ios::display_scale();
++    const float gap = 2.0f * scale;
++    const float inset = 4.0f * scale;
++    const float opacity = get_option<int>( "ANDROID_VIRTUAL_JOYSTICK_OPACITY" ) * 0.01f;
++    const SDL_FColor button{ 0.0f, 0.0f, 0.0f, opacity };
++    const SDL_FColor selected{ 1.0f, 1.0f, 1.0f, std::min( 1.0f, opacity * 1.8f ) };
++    const SDL_FColor arrow{ 1.0f, 1.0f, 1.0f, std::min( 1.0f, opacity * 2.0f ) };
++    const std::array<touch_joystick::direction, 9> directions = {
++        touch_joystick::direction::up_left, touch_joystick::direction::up,
++        touch_joystick::direction::up_right, touch_joystick::direction::left,
++        touch_joystick::direction::none, touch_joystick::direction::right,
++        touch_joystick::direction::down_left, touch_joystick::direction::down,
++        touch_joystick::direction::down_right
++    };
++    const std::array<SDL_FPoint, 8> vectors = { {
++            { -0.7071f, -0.7071f }, { 0.0f, -1.0f }, { 0.7071f, -0.7071f },
++            { -1.0f, 0.0f }, { 1.0f, 0.0f }, { -0.7071f, 0.7071f },
++            { 0.0f, 1.0f }, { 0.7071f, 0.7071f }
++        }
++    };
++
++    SetRenderDrawBlendMode( renderer, SDL_BLENDMODE_BLEND );
++    for( int row = 0; row < 3; ++row ) {
++        for( int column = 0; column < 3; ++column ) {
++            if( row == 1 && column == 1 ) {
++                continue;
++            }
++            const int index = row * 3 + column;
++            const touch_joystick::direction dir = directions[index];
++            const SDL_FRect cell{ layout.x + column * layout.cell + gap,
++                                  layout.y + row * layout.cell + gap,
++                                  layout.cell - gap * 2.0f, layout.cell - gap * 2.0f
++                                };
++            const SDL_Rect button_rect{ static_cast<int>( cell.x ), static_cast<int>( cell.y ),
++                                        static_cast<int>( cell.w ), static_cast<int>( cell.h )
++                                      };
++            const bool active = is_vehicle_dpad_touch && vehicle_dpad_direction == dir;
++            const Uint8 background_alpha = static_cast<Uint8>( ( active ? selected.a : button.a ) * 255.0f );
++            SetRenderDrawColor( renderer, active ? 255 : 0, active ? 255 : 0, active ? 255 : 0,
++                                background_alpha );
++            RenderFillRect( renderer, &button_rect );
++            const SDL_FPoint center{ cell.x + cell.w * 0.5f, cell.y + cell.h * 0.5f };
++            const SDL_FPoint vector = vectors[index < 4 ? index : index - 1];
++            const SDL_FColor arrow_color = active ? SDL_FColor{ 0.0f, 0.0f, 0.0f, 1.0f } : arrow;
++            draw_vehicle_dpad_arrow( center, vector.x, vector.y, cell.w - inset, arrow_color );
++        }
++    }
++    SetRenderDrawBlendMode( renderer, SDL_BLENDMODE_NONE );
++}
++#endif
++
+ // fill part of joystick octagon between two apothems over a slice of angles
+ static void draw_joystick_band( const SDL_FPoint &center, const float inner, const float outer,
+                                 const float start, const float end, const SDL_FColor &color )
+@@ -5685,6 +5822,11 @@ void draw_virtual_joystick()
+ {
+ 
+     // Bail out if we don't need to draw the joystick
++#if defined(CATA_IOS)
++    if( vehicle_dpad_active() ) {
++        return;
++    }
++#endif
+     if( !get_option<bool>( "ANDROID_SHOW_VIRTUAL_JOYSTICK" ) ||
+         finger_down_time <= 0 ||
+         GetTicks() - finger_down_time <= static_cast<uint32_t>
+@@ -5917,6 +6059,15 @@ static input_event touch_direction_input( const touch_joystick::direction dir )
+ void handle_finger_input( uint32_t ticks )
+ {
+ 
++#if defined(CATA_IOS)
++    if( is_vehicle_dpad_touch ) {
++        last_input = touch_direction_input( vehicle_dpad_direction );
++        if( last_input.type != input_event_t::error ) {
++            imclient->process_cata_input( last_input );
++        }
++        return;
++    }
++#endif
+     const float delta_x = finger_curr_x - finger_down_x;
+     const float delta_y = finger_curr_y - finger_down_y;
+     const bool is_default_mode = touch_input_context.get_category() == "DEFAULTMODE";
+@@ -6763,13 +6914,21 @@ static void CheckMessages()
+                 case CATA_FINGERMOTION: {
+                     const int slot = finger_slot_for( GetFingerID( ev ), false );
+                     if( slot == 0 ) {
++                        finger_curr_x = GetFingerX( ev, WindowWidth );
++                        finger_curr_y = GetFingerY( ev, WindowHeight );
++#if defined(CATA_IOS)
++                        if( is_vehicle_dpad_touch ) {
++                            vehicle_dpad_direction = vehicle_dpad_direction_at( finger_curr_x, finger_curr_y );
++                            needupdate = true;
++                            ui_manager::redraw_invalidated();
++                            break;
++                        }
++#endif
+                         if( !is_quick_shortcut_touch ) {
+                             update_finger_repeat_delay();
+                         }
+                         needupdate = true; // ensure virtual joystick and quick shortcuts redraw as we interact
+                         ui_manager::redraw_invalidated();
+-                        finger_curr_x = GetFingerX( ev, WindowWidth );
+-                        finger_curr_y = GetFingerY( ev, WindowHeight );
+ 
+                         if( get_option<bool>( "ANDROID_VIRTUAL_JOYSTICK_FOLLOW" ) && !is_two_finger_touch &&
+                             !is_three_finger_touch ) {
+@@ -6801,19 +6960,38 @@ static void CheckMessages()
+                         finger_down_time = ticks;
+                         finger_repeat_time = 0;
+                         is_quick_shortcut_touch = get_quick_shortcut_under_finger() != NULL;
++#if defined(CATA_IOS)
++                        vehicle_dpad_direction = vehicle_dpad_active() ?
++                                                 vehicle_dpad_direction_at( finger_down_x, finger_down_y ) :
++                                                 touch_joystick::direction::none;
++                        is_vehicle_dpad_touch = vehicle_dpad_direction != touch_joystick::direction::none;
++#endif
+                         if( !is_quick_shortcut_touch ) {
+                             update_finger_repeat_delay();
+                         }
+                         ui_manager::redraw_invalidated();
+                         needupdate = true; // ensure virtual joystick and quick shortcuts redraw as we interact
++#if defined(CATA_IOS)
++                        if( is_vehicle_dpad_touch ) {
++                            handle_finger_input( ticks );
++                        }
++#endif
+                     } else if( finger_slot_for( GetFingerID( ev ), true ) == 1 ) {
+-                        if( !is_quick_shortcut_touch ) {
++                        if( !is_quick_shortcut_touch
++#if defined(CATA_IOS)
++                            && !is_vehicle_dpad_touch
++#endif
++                          ) {
+                             second_finger_down_x = second_finger_curr_x = GetFingerX( ev, WindowWidth );
+                             second_finger_down_y = second_finger_curr_y = GetFingerY( ev, WindowHeight );
+                             is_two_finger_touch = true;
+                         }
+                     } else if( finger_slot_for( GetFingerID( ev ), true ) == 2 ) {
+-                        if( !is_quick_shortcut_touch ) {
++                        if( !is_quick_shortcut_touch
++#if defined(CATA_IOS)
++                            && !is_vehicle_dpad_touch
++#endif
++                          ) {
+                             third_finger_down_x = third_finger_curr_x = GetFingerX( ev, WindowWidth );
+                             third_finger_down_y = third_finger_curr_y = GetFingerY( ev, WindowHeight );
+                             is_three_finger_touch = true;
+@@ -6826,6 +7004,11 @@ static void CheckMessages()
+                     if( slot == 0 ) {
+                         finger_curr_x = GetFingerX( ev, WindowWidth );
+                         finger_curr_y = GetFingerY( ev, WindowHeight );
++#if defined(CATA_IOS)
++                        if( is_vehicle_dpad_touch ) {
++                            // Directional input was already sent on press and repeats while held.
++                        } else
++#endif
+                         if( is_quick_shortcut_touch ) {
+                             input_event *quick_shortcut = get_quick_shortcut_under_finger();
+                             if( quick_shortcut ) {

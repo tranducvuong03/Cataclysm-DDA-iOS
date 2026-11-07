@@ -7,6 +7,12 @@ on:
       - port/cdda-experimental-2026-10-30-2308
   pull_request:
   workflow_dispatch:
+    inputs:
+      rebuild_latest:
+        description: Rebuild the latest upstream version, even if it is already pinned
+        required: false
+        type: boolean
+        default: false
   schedule:
     - cron: "7,22,37,52 * * * *"
 
@@ -34,6 +40,8 @@ jobs:
 
       - name: Check upstream release
         id: check
+        env:
+          FORCE_BUILD: ${{ inputs.rebuild_latest }}
         run: bash scripts/check-upstream-release.sh
 
   build:

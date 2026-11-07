@@ -29,9 +29,18 @@ if [[ -n "${GH_TOKEN:-}" ]]; then
 fi
 source cdda.env
 if [[ "$CDDA_REF" == "$ref" ]]; then
-    echo "Upstream $ref is already pinned after a successful iOS build; skipping."
-    echo "should_build=false" >> "$GITHUB_OUTPUT"
-    exit 0
+    if [[ "${FORCE_BUILD:-false}" == "true" ]]; then
+        echo "Manual rebuild requested for already pinned upstream $ref."
+    else
+        published_releases="$(curl -fsSL "$releases_api")"
+        if jq -e --arg ref "$ref" 'any(.[]; .draft == false and .name == $ref)' \
+            <<<"$published_releases" >/dev/null; then
+            echo "Upstream $ref is already pinned and has a published iOS release; skipping."
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+            exit 0
+        fi
+        echo "Upstream $ref is pinned but its iOS release is missing; rebuilding."
+    fi
 fi
 
 tag_refs="$(git ls-remote https://github.com/CleverRaven/Cataclysm-DDA.git "refs/tags/$ref" "refs/tags/$ref^{}")"
