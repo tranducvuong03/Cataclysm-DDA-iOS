@@ -90,6 +90,9 @@ jobs:
       - name: Fetch and patch Cataclysm
         run: scripts/fetch-cdda.sh
 
+      - name: Install CC-Sounds
+        run: bash scripts/fetch-soundpack.sh
+
       - name: Install graphics assets
         run: bash scripts/fetch-graphics.sh
 
@@ -98,27 +101,54 @@ jobs:
           CDDA_TRANSLATIONS_FORCE_ARCHIVE: "true"
         run: scripts/compile-translations.sh
 
-      - name: Build arm64 experimental APK
+      - name: Create temporary APK signing key
+        env:
+          KEYSTORE_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          keytool -genkeypair -noprompt \
+            -keystore "$RUNNER_TEMP/cdda-test.keystore" \
+            -storepass "$KEYSTORE_PASSWORD" \
+            -keypass "$KEYSTORE_PASSWORD" \
+            -alias cdda \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Cataclysm DDA test build"
+          printf 'storeFile=%s\nstorePassword=%s\nkeyAlias=cdda\nkeyPassword=%s\n' \
+            "$RUNNER_TEMP/cdda-test.keystore" "$KEYSTORE_PASSWORD" "$KEYSTORE_PASSWORD" \
+            > cdda/android/keystore.properties
+
+      - name: Build optimized arm64 experimental APK
+        id: build_apk
         working-directory: cdda/android
+        env:
+          KEYSTORE_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           chmod +x gradlew
+          source "$GITHUB_WORKSPACE/cdda.env"
           ./gradlew --no-daemon -Pj="$(nproc)" \
+            -Poverride_version="$CDDA_VERSION_STRING" \
+            -Pversion_header_path=../src/version.h \
             -Poverride_versionCode="$((11581 + GITHUB_RUN_NUMBER))" \
             -Pabi_arm_32=false -Pabi_arm_64=true \
             -Pabi_x86_32=false -Pabi_x86_64=false \
-            assembleExperimentalDebug
-          mapfile -t apks < <(find app/build/outputs/apk/experimental/debug -maxdepth 1 -type f -name '*.apk' -print)
+            assembleExperimentalRelease
+          grep -Fqx "#define VERSION \"$CDDA_VERSION_STRING\"" ../src/version.h
+          mapfile -t apks < <(find app/build/outputs/apk/experimental/release -maxdepth 1 -type f -name '*.apk' -print)
           if [[ "${#apks[@]}" -ne 1 ]]; then
             printf 'error: expected one arm64 APK, found %s\n' "${#apks[@]}" >&2
             exit 1
           fi
-          mkdir -p "$GITHUB_WORKSPACE/dist"
-          source "$GITHUB_WORKSPACE/cdda.env"
-          cp "${apks[0]}" "$GITHUB_WORKSPACE/dist/Cataclysm-${CDDA_VERSION_STRING}-android-debug.apk"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign \
+            --ks "$RUNNER_TEMP/cdda-test.keystore" \
+            --ks-key-alias cdda \
+            --ks-pass "pass:$KEYSTORE_PASSWORD" \
+            --key-pass "pass:$KEYSTORE_PASSWORD" \
+            "${apks[0]}"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "${apks[0]}"
+          echo "apk_path=$GITHUB_WORKSPACE/cdda/android/${apks[0]}" >> "$GITHUB_OUTPUT"
 
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
-          name: Cataclysm-Android-${{ needs.check_upstream.outputs.upstream_ref }}-run-${{ github.run_number }}
-          path: dist/*.apk
+          name: Cataclysm-Android-arm64-${{ needs.check_upstream.outputs.upstream_ref }}-run-${{ github.run_number }}
+          path: ${{ steps.build_apk.outputs.apk_path }}
           if-no-files-found: error
