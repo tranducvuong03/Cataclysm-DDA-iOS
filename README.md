@@ -15,8 +15,6 @@ There is no App Store release. Install the app with your own Apple ID:
    [Sideloadly](https://sideloadly.io/). With a free Apple ID the signature lasts 7 days,
    after which the tool has to refresh it; your saves are kept.
 
-Or build it yourself and run it from Xcode, see [Building](#building).
-
 ## Playing on a touch screen
 
 The touch controls are the ones from upstream's Android port:
