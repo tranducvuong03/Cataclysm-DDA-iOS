@@ -32,7 +32,8 @@ count_po_catalogs() {
 
 mkdir -p "$CDDA/lang/po"
 po_count="$(count_po_catalogs "$CDDA/lang/po")"
-if [[ "$po_count" == 0 || ! -s "$CDDA/lang/po/vi.po" ]]; then
+if [[ "${CDDA_TRANSLATIONS_FORCE_ARCHIVE:-false}" == "true" ||
+      "$po_count" == 0 || ! -s "$CDDA/lang/po/vi.po" ]]; then
     if [[ -z "${CDDA_TRANSLATIONS_SHA256:-}" ]]; then
         echo "error: CDDA_TRANSLATIONS_SHA256 is not set in cdda.env" >&2
         exit 1

@@ -1,0 +1,122 @@
+name: Android
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check_upstream:
+    name: Find the latest upstream release
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.check.outputs.should_build }}
+      upstream_ref: ${{ steps.check.outputs.upstream_ref }}
+      upstream_commit: ${{ steps.check.outputs.upstream_commit }}
+      graphics_sha256: ${{ steps.check.outputs.graphics_sha256 }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check latest upstream release
+        id: check
+        env:
+          FORCE_BUILD: "true"
+        run: bash scripts/check-upstream-release.sh
+
+  build:
+    name: Build Android APK
+    needs: check_upstream
+    if: needs.check_upstream.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pin latest upstream release
+        env:
+          UPSTREAM_REF: ${{ needs.check_upstream.outputs.upstream_ref }}
+          UPSTREAM_COMMIT: ${{ needs.check_upstream.outputs.upstream_commit }}
+          GRAPHICS_SHA256: ${{ needs.check_upstream.outputs.graphics_sha256 }}
+        run: |
+          python3 - "$GITHUB_WORKSPACE/cdda.env" <<'PY'
+          import os
+          import re
+          import sys
+          from pathlib import Path
+
+          path = Path(sys.argv[1])
+          values = {
+              "CDDA_REF": (os.environ["UPSTREAM_REF"], r"cdda-experimental-\d{4}-\d{2}-\d{2}-\d{4}"),
+              "CDDA_COMMIT": (os.environ["UPSTREAM_COMMIT"], r"[0-9a-f]{40}"),
+              "CDDA_VERSION_STRING": (os.environ["UPSTREAM_REF"], r"cdda-experimental-\d{4}-\d{2}-\d{2}-\d{4}"),
+              "CDDA_GRAPHICS_SHA256": (os.environ["GRAPHICS_SHA256"], r"[0-9a-f]{64}"),
+          }
+          text = path.read_text()
+          for key, (value, pattern) in values.items():
+              if re.fullmatch(pattern, value) is None:
+                  raise SystemExit(f"invalid value for {key}")
+              expression = re.compile(rf"^{key}=.*$", re.MULTILINE)
+              text, count = expression.subn(f"{key}={value}", text)
+              if count != 1:
+                  raise SystemExit(f"expected exactly one {key} entry in cdda.env")
+          path.write_text(text)
+          PY
+          source cdda.env
+          test "$CDDA_TRANSLATIONS_REF" = "cdda-experimental-2026-10-30-2308"
+          echo "Building $CDDA_VERSION_STRING with translations from $CDDA_TRANSLATIONS_REF"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK and build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gettext rsync unzip
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;28.1.13356709" "cmake;3.22.1"
+
+      - name: Fetch and patch Cataclysm
+        run: scripts/fetch-cdda.sh
+
+      - name: Install graphics assets
+        run: bash scripts/fetch-graphics.sh
+
+      - name: Compile pinned translations
+        env:
+          CDDA_TRANSLATIONS_FORCE_ARCHIVE: "true"
+        run: scripts/compile-translations.sh
+
+      - name: Build arm64 experimental APK
+        working-directory: cdda/android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon -Pj="$(nproc)" \
+            -Poverride_versionCode="$((11581 + GITHUB_RUN_NUMBER))" \
+            -Pabi_arm_32=false -Pabi_arm_64=true \
+            -Pabi_x86_32=false -Pabi_x86_64=false \
+            assembleExperimentalDebug
+          mapfile -t apks < <(find app/build/outputs/apk/experimental/debug -maxdepth 1 -type f -name '*.apk' -print)
+          if [[ "${#apks[@]}" -ne 1 ]]; then
+            printf 'error: expected one arm64 APK, found %s\n' "${#apks[@]}" >&2
+            exit 1
+          fi
+          mkdir -p "$GITHUB_WORKSPACE/dist"
+          source "$GITHUB_WORKSPACE/cdda.env"
+          cp "${apks[0]}" "$GITHUB_WORKSPACE/dist/Cataclysm-${CDDA_VERSION_STRING}-android-debug.apk"
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Cataclysm-Android-${{ needs.check_upstream.outputs.upstream_ref }}-run-${{ github.run_number }}
+          path: dist/*.apk
+          if-no-files-found: error
