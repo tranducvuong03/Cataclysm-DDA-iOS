@@ -101,11 +101,24 @@ jobs:
           CDDA_TRANSLATIONS_FORCE_ARCHIVE: "true"
         run: scripts/compile-translations.sh
 
+      - name: Create temporary APK signing key
+        env:
+          KEYSTORE_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          keytool -genkeypair -noprompt \
+            -keystore "$RUNNER_TEMP/cdda-test.keystore" \
+            -storepass "$KEYSTORE_PASSWORD" \
+            -keypass "$KEYSTORE_PASSWORD" \
+            -alias cdda \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Cataclysm DDA test build"
+          printf 'storeFile=%s\nstorePassword=%s\nkeyAlias=cdda\nkeyPassword=%s\n' \
+            "$RUNNER_TEMP/cdda-test.keystore" "$KEYSTORE_PASSWORD" "$KEYSTORE_PASSWORD" \
+            > cdda/android/keystore.properties
+
       - name: Build optimized arm64 experimental APK
         id: build_apk
         working-directory: cdda/android
-        env:
-          KEYSTORE_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           chmod +x gradlew
           source "$GITHUB_WORKSPACE/cdda.env"
@@ -122,12 +135,6 @@ jobs:
             printf 'error: expected one arm64 APK, found %s\n' "${#apks[@]}" >&2
             exit 1
           fi
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign \
-            --ks "$RUNNER_TEMP/cdda-test.keystore" \
-            --ks-key-alias cdda \
-            --ks-pass "pass:$KEYSTORE_PASSWORD" \
-            --key-pass "pass:$KEYSTORE_PASSWORD" \
-            "${apks[0]}"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "${apks[0]}"
           echo "apk_path=$GITHUB_WORKSPACE/cdda/android/${apks[0]}" >> "$GITHUB_OUTPUT"
 
