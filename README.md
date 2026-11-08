@@ -3,6 +3,8 @@
 An unofficial iPhone and iPad port. Install the latest IPA from
 [Releases](../../releases) using [AltStore](https://altstore.io/) or [Sideloadly](https://sideloadly.io/).
 
+Upstream: [CleverRaven/CataclysmDDA](https://github.com/CleverRaven/Cataclysm-DDA)
+
 ## Installing
 
 There is no App Store release. Install the app with your own Apple ID:
