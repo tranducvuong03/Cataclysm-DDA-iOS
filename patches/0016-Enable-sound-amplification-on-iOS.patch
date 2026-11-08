@@ -1,0 +1,75 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Copilot <223556219+Copilot@users.noreply.github.com>
+Date: Sun, 8 Nov 2026 19:42:57 +0700
+Subject: [PATCH] Enable sound amplification on iOS
+
+Expose the sound boost in shared sound settings and apply it to SDL3 mixer gain on iOS as well as Android.
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
+---
+ src/options.cpp            | 14 +++++++-------
+ src/sound_backend_sdl3.cpp |  6 +++---
+ 2 files changed, 10 insertions(+), 10 deletions(-)
+
+diff --git a/src/options.cpp b/src/options.cpp
+index 553a1fb..76cd2f1 100644
+--- a/src/options.cpp
++++ b/src/options.cpp
+@@ -1862,6 +1862,13 @@ void options_manager::add_options_general()
+ 
+         get_option( "SOUNDPACKS" ).setPrerequisite( "SOUND_ENABLED" );
+ 
++#if defined(__ANDROID__) || defined(CATA_IOS)
++        add( "ANDROID_SOUND_BOOST", page_id, to_translation( "Sound amplification" ),
++             to_translation( "Boost game audio above its normal level.  High values may cause clipping or distortion." ),
++             100, 200, 150
++           );
++#endif
++
+         add( "MUSIC_VOLUME", page_id, to_translation( "Music volume" ),
+              to_translation( "Adjust the volume of the music being played in the background." ),
+              0, 128, 100, COPT_NO_SOUND_HIDE
+@@ -3082,13 +3089,6 @@ void options_manager::add_options_android()
+          false
+        );
+ 
+-#if defined(__ANDROID__)
+-    add( "ANDROID_SOUND_BOOST", "android", to_translation( "Sound amplification" ),
+-         to_translation( "Boost game audio above its normal level.  High values may cause clipping or distortion." ),
+-         100, 200, 150
+-       );
+-#endif
+-
+     add_empty_line();
+ 
+     add_option_group( "android", Group( "android_display_opts",
+diff --git a/src/sound_backend_sdl3.cpp b/src/sound_backend_sdl3.cpp
+index 6cc52ed..35f0670 100644
+--- a/src/sound_backend_sdl3.cpp
++++ b/src/sound_backend_sdl3.cpp
+@@ -17,7 +17,7 @@
+ #include <vector>
+ 
+ #include "debug.h"
+-#if defined(__ANDROID__)
++#if defined(__ANDROID__) || defined(CATA_IOS)
+ #include "options.h"
+ #endif
+ 
+@@ -134,14 +134,14 @@ float volume_to_gain( int vol )
+         return 0.0f;
+     }
+     if( vol >= 128 ) {
+-#if defined(__ANDROID__)
++#if defined(__ANDROID__) || defined(CATA_IOS)
+         return static_cast<float>( get_option<int>( "ANDROID_SOUND_BOOST" ) ) / 100.0f;
+ #else
+         return 1.0f;
+ #endif
+     }
+     float gain = static_cast<float>( vol ) / 128.0f;
+-#if defined(__ANDROID__)
++#if defined(__ANDROID__) || defined(CATA_IOS)
+     gain *= static_cast<float>( get_option<int>( "ANDROID_SOUND_BOOST" ) ) / 100.0f;
+ #endif
+     return gain;
