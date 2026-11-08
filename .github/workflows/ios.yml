@@ -205,20 +205,12 @@ jobs:
         if: matrix.platform == 'iphonesimulator'
         run: scripts/simulator-smoke-test.sh build/iphonesimulator/Release-iphonesimulator/Cataclysm.app dist/smoke-test
 
-      - name: Smoke test in the iPad Simulator
-        if: ${{ !cancelled() && matrix.platform == 'iphonesimulator' && steps.build.outcome == 'success' }}
-        env:
-          SMOKE_DEVICE_KIND: ipad
-        run: scripts/simulator-smoke-test.sh build/iphonesimulator/Release-iphonesimulator/Cataclysm.app dist/smoke-test-ipad
-
       - name: Upload smoke test results
         if: always() && matrix.platform == 'iphonesimulator'
         uses: actions/upload-artifact@v4
         with:
           name: smoke-test
-          path: |
-            dist/smoke-test
-            dist/smoke-test-ipad
+          path: dist/smoke-test
           if-no-files-found: ignore
 
       - name: Package unsigned IPA

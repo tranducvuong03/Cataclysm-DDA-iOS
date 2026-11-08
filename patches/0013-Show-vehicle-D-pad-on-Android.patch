@@ -1,0 +1,174 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Copilot <223556219+Copilot@users.noreply.github.com>
+Date: Sun, 8 Nov 2026 11:17:13 +0700
+Subject: [PATCH] Show vehicle D-pad on Android
+
+Share the vehicle D-pad controls with Android touch input and position them using the platform's shortcut area and display density.
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
+---
+ src/sdltiles.cpp | 44 ++++++++++++++++++++++----------------------
+ 1 file changed, 22 insertions(+), 22 deletions(-)
+
+diff --git a/src/sdltiles.cpp b/src/sdltiles.cpp
+index 3e95738..6e9d3c7 100644
+--- a/src/sdltiles.cpp
++++ b/src/sdltiles.cpp
+@@ -947,7 +947,7 @@ void draw_virtual_joystick();
+ 
+ static bool quick_shortcuts_enabled = true;
+ #endif
+-#if defined(CATA_IOS)
++#if defined(__ANDROID__) || defined(CATA_IOS)
+ void draw_vehicle_dpad();
+ #endif
+ 
+@@ -1376,10 +1376,8 @@ void refresh_display()
+         draw_quick_shortcuts();
+     }
+     draw_virtual_joystick();
+-#if defined(CATA_IOS)
+     draw_vehicle_dpad();
+ #endif
+-#endif
+ #if defined(CATA_IOS)
+     // Automated tests capture exactly what is about to be shown.
+     std::string screenshot_path;
+@@ -4959,7 +4957,7 @@ static bool is_three_finger_touch = false;
+ // did this touch start on a quick shortcut?
+ static bool is_quick_shortcut_touch = false;
+ static bool quick_shortcuts_toggle_handled = false;
+-#if defined(CATA_IOS)
++#if defined(__ANDROID__) || defined(CATA_IOS)
+ static bool is_vehicle_dpad_touch = false;
+ static bool is_vehicle_dpad_center_touch = false;
+ static touch_joystick::direction vehicle_dpad_direction = touch_joystick::direction::none;
+@@ -5390,7 +5388,7 @@ static void reset_touch_state()
+     is_three_finger_touch = false;
+     finger_down_time = 0;
+     finger_repeat_time = 0;
+-#if defined(CATA_IOS)
++#if defined(__ANDROID__) || defined(CATA_IOS)
+     is_vehicle_dpad_touch = false;
+     is_vehicle_dpad_center_touch = false;
+     vehicle_dpad_direction = touch_joystick::direction::none;
+@@ -5651,7 +5649,7 @@ static float android_touch_speed()
+                                            android_touch_deadzone(), android_touch_repeat_range() );
+ }
+ 
+-#if defined(CATA_IOS)
++#if defined(__ANDROID__) || defined(CATA_IOS)
+ struct vehicle_dpad_layout {
+     float x;
+     float y;
+@@ -5666,15 +5664,16 @@ static bool vehicle_dpad_active()
+ 
+ static vehicle_dpad_layout get_vehicle_dpad_layout()
+ {
+-    const float scale = cata_ios::display_scale();
++    const float scale = android_get_display_density();
+     const float margin = 8.0f * scale;
++    const SDL_Rect area = quick_shortcuts_area();
+     const float shortcuts_height = quick_shortcuts_enabled ? quick_shortcut_height() : 0.0f;
+-    const float usable_height = std::max( 1.0f, ios_safe_area.h - shortcuts_height - 2.0f * margin );
+-    const float cell = std::min( { std::min( ios_safe_area.w * 0.30f, usable_height * 0.82f ) / 3.0f,
++    const float usable_height = std::max( 1.0f, area.h - shortcuts_height - 2.0f * margin );
++    const float cell = std::min( { std::min( area.w * 0.30f, usable_height * 0.82f ) / 3.0f,
+                                    68.0f * scale,
+-                                   std::min( static_cast<float>( ios_safe_area.w ), usable_height ) / 3.0f } );
+-    return vehicle_dpad_layout{ ios_safe_area.x + margin,
+-                                ios_safe_area.y + ios_safe_area.h - shortcuts_height - margin - 3.0f * cell,
++                                   std::min( static_cast<float>( area.w ), usable_height ) / 3.0f } );
++    return vehicle_dpad_layout{ area.x + margin,
++                                area.y + area.h - shortcuts_height - margin - 3.0f * cell,
+                                 cell
+                               };
+ }
+@@ -5727,12 +5726,13 @@ static void draw_vehicle_dpad_arrow( const SDL_FPoint &center, const float dx, c
+ 
+ void draw_vehicle_dpad()
+ {
+-    if( !vehicle_dpad_active() || ios_safe_area.w <= 0 || ios_safe_area.h <= 0 ) {
++    const SDL_Rect area = quick_shortcuts_area();
++    if( !vehicle_dpad_active() || area.w <= 0 || area.h <= 0 ) {
+         return;
+     }
+ 
+     const vehicle_dpad_layout layout = get_vehicle_dpad_layout();
+-    const float scale = cata_ios::display_scale();
++    const float scale = android_get_display_density();
+     const float gap = 2.0f * scale;
+     const float inset = 4.0f * scale;
+     const float opacity = get_option<int>( "ANDROID_VIRTUAL_JOYSTICK_OPACITY" ) * 0.01f;
+@@ -5851,7 +5851,7 @@ void draw_virtual_joystick()
+ {
+ 
+     // Bail out if we don't need to draw the joystick
+-#if defined(CATA_IOS)
++#if defined(__ANDROID__) || defined(CATA_IOS)
+     if( vehicle_dpad_active() ) {
+         return;
+     }
+@@ -6088,7 +6088,7 @@ static input_event touch_direction_input( const touch_joystick::direction dir )
+ void handle_finger_input( uint32_t ticks )
+ {
+ 
+-#if defined(CATA_IOS)
++#if defined(__ANDROID__) || defined(CATA_IOS)
+     if( is_vehicle_dpad_touch ) {
+         last_input = touch_direction_input( vehicle_dpad_direction );
+         if( last_input.type != input_event_t::error ) {
+@@ -6945,7 +6945,7 @@ static void CheckMessages()
+                     if( slot == 0 ) {
+                         finger_curr_x = GetFingerX( ev, WindowWidth );
+                         finger_curr_y = GetFingerY( ev, WindowHeight );
+-#if defined(CATA_IOS)
++#if defined(__ANDROID__) || defined(CATA_IOS)
+                         if( is_vehicle_dpad_touch ) {
+                             vehicle_dpad_direction = vehicle_dpad_direction_at( finger_curr_x, finger_curr_y );
+                             is_vehicle_dpad_center_touch = vehicle_dpad_center_at( finger_curr_x, finger_curr_y );
+@@ -6990,7 +6990,7 @@ static void CheckMessages()
+                         finger_down_time = ticks;
+                         finger_repeat_time = 0;
+                         is_quick_shortcut_touch = get_quick_shortcut_under_finger() != NULL;
+-#if defined(CATA_IOS)
++#if defined(__ANDROID__) || defined(CATA_IOS)
+                         vehicle_dpad_direction = vehicle_dpad_active() ?
+                                                  vehicle_dpad_direction_at( finger_down_x, finger_down_y ) :
+                                                  touch_joystick::direction::none;
+@@ -7004,7 +7004,7 @@ static void CheckMessages()
+                         }
+                         ui_manager::redraw_invalidated();
+                         needupdate = true; // ensure virtual joystick and quick shortcuts redraw as we interact
+-#if defined(CATA_IOS)
++#if defined(__ANDROID__) || defined(CATA_IOS)
+                         if( is_vehicle_dpad_touch ) {
+                             if( is_vehicle_dpad_center_touch ) {
+                                 last_input = input_event( '.', input_event_t::keyboard_char );
+@@ -7016,7 +7016,7 @@ static void CheckMessages()
+ #endif
+                     } else if( finger_slot_for( GetFingerID( ev ), true ) == 1 ) {
+                         if( !is_quick_shortcut_touch
+-#if defined(CATA_IOS)
++#if defined(__ANDROID__) || defined(CATA_IOS)
+                             && !is_vehicle_dpad_touch
+ #endif
+                           ) {
+@@ -7026,7 +7026,7 @@ static void CheckMessages()
+                         }
+                     } else if( finger_slot_for( GetFingerID( ev ), true ) == 2 ) {
+                         if( !is_quick_shortcut_touch
+-#if defined(CATA_IOS)
++#if defined(__ANDROID__) || defined(CATA_IOS)
+                             && !is_vehicle_dpad_touch
+ #endif
+                           ) {
+@@ -7042,7 +7042,7 @@ static void CheckMessages()
+                     if( slot == 0 ) {
+                         finger_curr_x = GetFingerX( ev, WindowWidth );
+                         finger_curr_y = GetFingerY( ev, WindowHeight );
+-#if defined(CATA_IOS)
++#if defined(__ANDROID__) || defined(CATA_IOS)
+                         if( is_vehicle_dpad_touch ) {
+                             // Directional input was already sent on press and repeats while held.
+                         } else

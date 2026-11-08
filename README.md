@@ -43,3 +43,6 @@ connected.
 Build on macOS with Xcode, or use the
 [GitHub Actions workflow](https://github.com/tranducvuong03/Cataclysm-IOS-Experimental/actions/workflows/ios.yml).
 To rebuild the latest pinned version, run the workflow manually and enable **Rebuild latest upstream version**.
+
+To build Android for the latest upstream version, run the
+[Android workflow](https://github.com/tranducvuong03/Cataclysm-DDA-iOS/actions/workflows/android.yml).
