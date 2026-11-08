@@ -1,0 +1,64 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Copilot <223556219+Copilot@users.noreply.github.com>
+Date: Sun, 8 Nov 2026 19:37:33 +0700
+Subject: [PATCH] Add Android sound amplification option
+
+Expose a configurable Android-only gain boost for music and sound effects, with a warning that excessive amplification can distort audio.
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
+---
+ src/options.cpp            |  7 +++++++
+ src/sound_backend_sdl3.cpp | 13 ++++++++++++-
+ 2 files changed, 19 insertions(+), 1 deletion(-)
+
+diff --git a/src/options.cpp b/src/options.cpp
+index 9c1866f..553a1fb 100644
+--- a/src/options.cpp
++++ b/src/options.cpp
+@@ -3082,6 +3082,13 @@ void options_manager::add_options_android()
+          false
+        );
+ 
++#if defined(__ANDROID__)
++    add( "ANDROID_SOUND_BOOST", "android", to_translation( "Sound amplification" ),
++         to_translation( "Boost game audio above its normal level.  High values may cause clipping or distortion." ),
++         100, 200, 150
++       );
++#endif
++
+     add_empty_line();
+ 
+     add_option_group( "android", Group( "android_display_opts",
+diff --git a/src/sound_backend_sdl3.cpp b/src/sound_backend_sdl3.cpp
+index 2de742b..6cc52ed 100644
+--- a/src/sound_backend_sdl3.cpp
++++ b/src/sound_backend_sdl3.cpp
+@@ -17,6 +17,9 @@
+ #include <vector>
+ 
+ #include "debug.h"
++#if defined(__ANDROID__)
++#include "options.h"
++#endif
+ 
+ #define dbg(x) DebugLog((x), D_SDL) << __FILE__ << ":" << __LINE__ << ": "
+ 
+@@ -131,9 +134,17 @@ float volume_to_gain( int vol )
+         return 0.0f;
+     }
+     if( vol >= 128 ) {
++#if defined(__ANDROID__)
++        return static_cast<float>( get_option<int>( "ANDROID_SOUND_BOOST" ) ) / 100.0f;
++#else
+         return 1.0f;
++#endif
+     }
+-    return static_cast<float>( vol ) / 128.0f;
++    float gain = static_cast<float>( vol ) / 128.0f;
++#if defined(__ANDROID__)
++    gain *= static_cast<float>( get_option<int>( "ANDROID_SOUND_BOOST" ) ) / 100.0f;
++#endif
++    return gain;
+ }
+ 
+ // Distance semantics inherited from Mix_SetPosition: 0 = closest (max
