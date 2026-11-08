@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Copilot <223556219+Copilot@users.noreply.github.com>
+Date: Sun, 8 Nov 2026 11:50:01 +0700
+Subject: [PATCH] Use SDL3 Android JNI accessor names
+
+Use the SDL3 Android activity and JNI environment accessors when showing touch-control toast messages.
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
+---
+ src/sdltiles.cpp | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/sdltiles.cpp b/src/sdltiles.cpp
+index 6e9d3c7..1820ac3 100644
+--- a/src/sdltiles.cpp
++++ b/src/sdltiles.cpp
+@@ -4973,8 +4973,8 @@ static bool needs_sdl_surface_visibility_refresh = true;
+ static void show_touch_toast( const char *message )
+ {
+ #if defined(__ANDROID__)
+-    JNIEnv *env = ( JNIEnv * )SDL_AndroidGetJNIEnv();
+-    jobject activity = ( jobject )SDL_AndroidGetActivity();
++    JNIEnv *env = ( JNIEnv * )SDL_GetAndroidJNIEnv();
++    jobject activity = ( jobject )SDL_GetAndroidActivity();
+     jclass clazz( env->GetObjectClass( activity ) );
+     jstring toast_message = env->NewStringUTF( message );
+     jmethodID method_id = env->GetMethodID( clazz, "toast", "(Ljava/lang/String;)V" );
