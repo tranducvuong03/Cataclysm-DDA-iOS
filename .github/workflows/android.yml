@@ -101,21 +101,6 @@ jobs:
           CDDA_TRANSLATIONS_FORCE_ARCHIVE: "true"
         run: scripts/compile-translations.sh
 
-      - name: Create temporary APK signing key
-        env:
-          KEYSTORE_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}
-        run: |
-          keytool -genkeypair -noprompt \
-            -keystore "$RUNNER_TEMP/cdda-test.keystore" \
-            -storepass "$KEYSTORE_PASSWORD" \
-            -keypass "$KEYSTORE_PASSWORD" \
-            -alias cdda \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -dname "CN=Cataclysm DDA test build"
-          printf 'storeFile=%s\nstorePassword=%s\nkeyAlias=cdda\nkeyPassword=%s\n' \
-            "$RUNNER_TEMP/cdda-test.keystore" "$KEYSTORE_PASSWORD" "$KEYSTORE_PASSWORD" \
-            > cdda/android/keystore.properties
-
       - name: Build optimized arm64 experimental APK
         id: build_apk
         working-directory: cdda/android
@@ -124,10 +109,10 @@ jobs:
         run: |
           chmod +x gradlew
           source "$GITHUB_WORKSPACE/cdda.env"
-          ./gradlew --no-daemon -Pj="$(nproc)" \
+          export UPSTREAM_BUILD_NUMBER="$((11581 + GITHUB_RUN_NUMBER))"
+          ./gradlew --no-daemon -x makeLocalization -Pj="$(nproc)" \
             -Poverride_version="$CDDA_VERSION_STRING" \
             -Pversion_header_path=../src/version.h \
-            -Poverride_versionCode="$((11581 + GITHUB_RUN_NUMBER))" \
             -Pabi_arm_32=false -Pabi_arm_64=true \
             -Pabi_x86_32=false -Pabi_x86_64=false \
             assembleExperimentalRelease
