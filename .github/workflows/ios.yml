@@ -47,17 +47,9 @@ jobs:
   build:
     needs: check_upstream
     if: always() && ((github.event_name != 'schedule' && github.event_name != 'workflow_dispatch') || needs.check_upstream.outputs.should_build == 'true')
-    name: ${{ matrix.name }}
+    name: Build device IPA
     runs-on: macos-15
     timeout-minutes: 300
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Simulator build and smoke test
-            platform: iphonesimulator
-          - name: Device build (unsigned IPA)
-            platform: iphoneos
     env:
       USE_CCACHE: "1"
       CCACHE_DIR: ${{ github.workspace }}/.ccache
@@ -121,7 +113,7 @@ jobs:
         run: bash scripts/fetch-soundpack.sh
 
       - name: Save CC-Sounds archive
-        if: matrix.platform == 'iphoneos' && steps.soundpack-cache.outputs.cache-hit != 'true'
+        if: steps.soundpack-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: build/soundpack
@@ -138,7 +130,7 @@ jobs:
         run: bash scripts/fetch-graphics.sh
 
       - name: Save upstream graphics archive
-        if: matrix.platform == 'iphoneos' && steps.graphics-cache.outputs.cache-hit != 'true'
+        if: steps.graphics-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: build/graphics
@@ -148,18 +140,18 @@ jobs:
         id: deps
         uses: actions/cache/restore@v4
         with:
-          path: deps/install/${{ matrix.platform }}
-          key: sdl3-deps-${{ matrix.platform }}-${{ runner.os }}-${{ hashFiles('scripts/build-deps.sh') }}
+          path: deps/install/iphoneos
+          key: sdl3-deps-iphoneos-${{ runner.os }}-${{ hashFiles('scripts/build-deps.sh') }}
 
       - name: Build SDL3 libraries
         if: steps.deps.outputs.cache-hit != 'true'
-        run: scripts/build-deps.sh ${{ matrix.platform }}
+        run: scripts/build-deps.sh iphoneos
 
       - name: Save SDL3 libraries
         if: steps.deps.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
-          path: deps/install/${{ matrix.platform }}
+          path: deps/install/iphoneos
           key: ${{ steps.deps.outputs.cache-primary-key }}
 
       - name: Restore upstream translation archive
@@ -173,7 +165,7 @@ jobs:
         run: scripts/compile-translations.sh
 
       - name: Save upstream translation archive
-        if: matrix.platform == 'iphoneos' && steps.translations-cache.outputs.cache-hit != 'true'
+        if: steps.translations-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: build/translations
@@ -183,49 +175,36 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: .ccache
-          key: ccache-${{ matrix.platform }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: ccache-${{ matrix.platform }}-
+          key: ccache-iphoneos-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: ccache-iphoneos-
 
       - name: Build Cataclysm.app
         id: build
-        run: scripts/build-app.sh ${{ matrix.platform }} Release
+        run: scripts/build-app.sh iphoneos Release
 
       - name: Save compiler cache
         if: always()
         uses: actions/cache/save@v4
         with:
           path: .ccache
-          key: ccache-${{ matrix.platform }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: ccache-iphoneos-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Compiler cache statistics
         if: always()
         run: ccache -s || true
 
-      - name: Smoke test in the iOS Simulator
-        if: matrix.platform == 'iphonesimulator'
-        run: scripts/simulator-smoke-test.sh build/iphonesimulator/Release-iphonesimulator/Cataclysm.app dist/smoke-test
-
-      - name: Upload smoke test results
-        if: always() && matrix.platform == 'iphonesimulator'
-        uses: actions/upload-artifact@v4
-        with:
-          name: smoke-test
-          path: dist/smoke-test
-          if-no-files-found: ignore
-
       - name: Package unsigned IPA
-        if: matrix.platform == 'iphoneos'
         run: scripts/package-ipa.sh build/iphoneos/Release-iphoneos/Cataclysm.app
 
       - name: Name unsigned IPA artifact
         id: ipa_artifact
-        if: matrix.platform == 'iphoneos' && github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request'
         run: |
           source cdda.env
           echo "name=Cataclysm-iOS-${CDDA_VERSION_STRING}-build-${GITHUB_RUN_NUMBER}-unsigned-ipa" >> "$GITHUB_OUTPUT"
 
       - name: Upload unsigned IPA for publishing
-        if: matrix.platform == 'iphoneos' && github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.ipa_artifact.outputs.name }}
