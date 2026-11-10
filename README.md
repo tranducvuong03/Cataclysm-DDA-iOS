@@ -11,7 +11,7 @@ Upstream: [CleverRaven/CataclysmDDA](https://github.com/CleverRaven/Cataclysm-DD
   <img width="30%" alt="image" src="https://github.com/user-attachments/assets/73c6b8d2-ebf0-4bb3-982d-7f32ee66a42b" />
 </div>
 
-## Installing
+## Installing (Newest stable 0.I & Experimental version)
 
 There is no App Store release. Install the app with your own Apple ID:
 
