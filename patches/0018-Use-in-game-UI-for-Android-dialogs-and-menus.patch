@@ -1,0 +1,384 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Copilot <223556219+Copilot@users.noreply.github.com>
+Date: Thu, 12 Nov 2026 15:23:28 +0700
+Subject: [PATCH] Use in-game UI for Android dialogs and menus
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
+---
+ .../cataclysmdda/CataclysmDDA.java            |   4 -
+ .../cleverraven/cataclysmdda/NativeUI.java    | 162 ------------------
+ src/options.cpp                               |   5 -
+ src/output.cpp                                |  46 -----
+ src/uilist.cpp                                |  69 --------
+ 5 files changed, 286 deletions(-)
+ delete mode 100644 android/app/src/main/java/com/cleverraven/cataclysmdda/NativeUI.java
+
+diff --git a/android/app/src/main/java/com/cleverraven/cataclysmdda/CataclysmDDA.java b/android/app/src/main/java/com/cleverraven/cataclysmdda/CataclysmDDA.java
+index ce06c3d..2ab7590 100755
+--- a/android/app/src/main/java/com/cleverraven/cataclysmdda/CataclysmDDA.java
++++ b/android/app/src/main/java/com/cleverraven/cataclysmdda/CataclysmDDA.java
+@@ -33,7 +33,6 @@ public class CataclysmDDA extends SDLActivity {
+     public static final String SCREEN_ORIENTATION_PORTRAIT = "portrait";
+     public static final String SCREEN_ORIENTATION_AUTO = "auto";
+ 
+-    private NativeUI nativeUI = new NativeUI(CataclysmDDA.this);
+     private int lastImeLeft = -1;
+     private int lastImeTop = -1;
+     private int lastImeRight = -1;
+@@ -477,7 +476,4 @@ public class CataclysmDDA extends SDLActivity {
+         return getResources().getConfiguration().locale.toLanguageTag().replace('-', '_');
+     }
+ 
+-    public NativeUI getNativeUI() {
+-        return nativeUI;
+-    }
+ }
+diff --git a/android/app/src/main/java/com/cleverraven/cataclysmdda/NativeUI.java b/android/app/src/main/java/com/cleverraven/cataclysmdda/NativeUI.java
+deleted file mode 100644
+index e9fabb6..0000000
+--- a/android/app/src/main/java/com/cleverraven/cataclysmdda/NativeUI.java
++++ /dev/null
+@@ -1,162 +0,0 @@
+-package com.cleverraven.cataclysmdda;
+-
+-import java.util.concurrent.Semaphore;
+-
+-import android.app.AlertDialog;
+-import android.content.DialogInterface;
+-
+-public class NativeUI {
+-    enum YesNoDialogResponse {
+-        YES,
+-        NO
+-    }
+-
+-    private CataclysmDDA activity;
+-
+-    NativeUI(CataclysmDDA activity) {
+-        this.activity = activity;
+-    }
+-
+-    private class Popup {
+-        private Semaphore semaphore = new Semaphore(0, true);
+-
+-        public void popup(final String message) {
+-            activity.runOnUiThread(new Runnable() {
+-                public void run() {
+-                    AlertDialog dialog = new AlertDialog.Builder(activity, R.style.AlertDialogTheme)
+-                            .setTitle("")
+-                            .setCancelable(false)
+-                            .setMessage(message)
+-                            .setNeutralButton(R.string.ok, new DialogInterface.OnClickListener() {
+-                                public void onClick(DialogInterface dialog, int id) {
+-                                    semaphore.release();
+-                                }
+-                            }).create();
+-                    dialog.show();
+-                }
+-            });
+-
+-            try {
+-                semaphore.acquire();
+-            } catch (InterruptedException ex) {
+-                // No-op
+-            }
+-        }
+-    }
+-
+-    private class QueryYN {
+-        private Semaphore semaphore = new Semaphore(0, true);
+-
+-        private YesNoDialogResponse response;
+-
+-        public boolean queryYN(final String message) {
+-            activity.runOnUiThread(new Runnable() {
+-                public void run() {
+-                    AlertDialog dialog = new AlertDialog.Builder(activity, R.style.AlertDialogTheme)
+-                            .setTitle("")
+-                            .setCancelable(false)
+-                            .setMessage(message)
+-                            .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+-                                public void onClick(DialogInterface dialog, int id) {
+-                                    response = YesNoDialogResponse.YES;
+-                                    semaphore.release();
+-                                }
+-                            })
+-                            .setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
+-                                public void onClick(DialogInterface dialog, int id) {
+-                                    response = YesNoDialogResponse.NO;
+-                                    semaphore.release();
+-                                }
+-                            }).create();
+-                    dialog.show();
+-                }
+-            });
+-
+-            try {
+-                semaphore.acquire();
+-            } catch (InterruptedException ex) {
+-                // No-op
+-            }
+-
+-            return response == YesNoDialogResponse.YES;
+-        }
+-    }
+-
+-    private class SingleChoiceList {
+-        private Semaphore semaphore = new Semaphore(0, true);
+-
+-        private int singleChoiceResponse;
+-
+-        private final int cancel = -1;
+-        private final int init = -2;
+-
+-        private String[] mixOptionsText(final String[] options, final boolean[] enabled) {
+-            String[] result = new String[options.length];
+-            for (int i = 0; i < options.length; i++) {
+-                if (enabled[i]) {
+-                    result[i] = options[i];
+-                } else {
+-                    result[i] = String.format("%s [%s]", options[i], activity.getString(R.string.unavailable));
+-                }
+-            }
+-            return result;
+-        }
+-
+-        public int singleChoiceList(final String text, final String[] options, final boolean[] enabled) {
+-            singleChoiceResponse = init;
+-
+-            final String[] choices = mixOptionsText(options, enabled);
+-
+-            while (singleChoiceResponse == init
+-                    || (singleChoiceResponse != cancel && enabled[singleChoiceResponse] == false)) {
+-                activity.runOnUiThread(new Runnable() {
+-                    public void run() {
+-                        AlertDialog dialog = new AlertDialog.Builder(activity, R.style.AlertDialogTheme)
+-                                .setTitle(text)
+-                                .setItems(choices, new DialogInterface.OnClickListener() {
+-                                    public void onClick(DialogInterface dialog, int which) {
+-                                        singleChoiceResponse = which;
+-                                        semaphore.release();
+-                                    }
+-                                })
+-                                .setOnCancelListener(new DialogInterface.OnCancelListener() {
+-                                    public void onCancel(DialogInterface dialog) {
+-                                        singleChoiceResponse = cancel;
+-                                        semaphore.release();
+-                                    }
+-                                })
+-                                .create();
+-                        dialog.show();
+-                    }
+-                });
+-
+-                try {
+-                    semaphore.acquire();
+-                } catch (InterruptedException ex) {
+-                    // No-op
+-                }
+-
+-                if (singleChoiceResponse != cancel && enabled[singleChoiceResponse] == false) {
+-                    new Popup().popup(activity.getString(R.string.unavailableOption));
+-                }
+-            }
+-
+-            return singleChoiceResponse;
+-        }
+-    }
+-
+-    public void popup(final String message) {
+-        final Popup popup = new Popup();
+-        popup.popup(message);
+-    }
+-
+-    public boolean queryYN(final String message) {
+-        final QueryYN queryYN = new QueryYN();
+-        return queryYN.queryYN(message);
+-    }
+-
+-    public int singleChoiceList(final String text, final String[] options, final boolean[] enabled) {
+-        final SingleChoiceList singleChoiceList = new SingleChoiceList();
+-        return singleChoiceList.singleChoiceList(text, options, enabled);
+-    }
+-}
+diff --git a/src/options.cpp b/src/options.cpp
+index 76cd2f1..9421fb4 100644
+--- a/src/options.cpp
++++ b/src/options.cpp
+@@ -3167,11 +3167,6 @@ void options_manager::add_options_android()
+              android_get_default_setting( "Trap Back button", true )
+            );
+ 
+-        add( "ANDROID_NATIVE_UI", page_id, to_translation( "Use native Android UI menus" ),
+-             to_translation( "If true, native Android dialogs are used for some in-game menus, "
+-                             "such as popup messages and yes/no dialogs." ),
+-             android_get_default_setting( "Native Android UI", true )
+-           );
+ #endif
+ 
+         add( "ANDROID_AUTO_KEYBOARD", page_id, to_translation( "Auto-manage virtual keyboard" ),
+diff --git a/src/output.cpp b/src/output.cpp
+index e4f1ec9..9c448dc 100644
+--- a/src/output.cpp
++++ b/src/output.cpp
+@@ -44,11 +44,6 @@
+ #include "units_utility.h"
+ #include "wcwidth.h"
+ 
+-#if defined(__ANDROID__)
+-#include <jni.h>
+-#include "sdl_wrappers.h" // for GetAndroidJNIEnv(), GetAndroidActivity()
+-#endif
+-
+ // Display data
+ int TERMX;
+ int TERMY;
+@@ -835,26 +830,6 @@ int border_helper::border_connection::as_curses_line() const
+ 
+ bool query_yn( const std::string &text )
+ {
+-#if defined(__ANDROID__)
+-    if( get_option<bool>( "ANDROID_NATIVE_UI" ) ) {
+-        JNIEnv *env = ( JNIEnv * )GetAndroidJNIEnv();
+-        jobject activity = ( jobject )GetAndroidActivity();
+-        jclass clazz( env->GetObjectClass( activity ) );
+-        jmethodID get_nativeui_method_id = env->GetMethodID( clazz, "getNativeUI",
+-                                           "()Lcom/cleverraven/cataclysmdda/NativeUI;" );
+-        jobject native_ui_obj = env->CallObjectMethod( activity, get_nativeui_method_id );
+-        jclass native_ui_cls( env->GetObjectClass( native_ui_obj ) );
+-        jmethodID queryYN_method_id = env->GetMethodID( native_ui_cls, "queryYN", "(Ljava/lang/String;)Z" );
+-        jstring jstr = env->NewStringUTF( text.c_str() );
+-        bool result = env->CallBooleanMethod( native_ui_obj, queryYN_method_id, jstr );
+-        env->DeleteLocalRef( jstr );
+-        env->DeleteLocalRef( native_ui_cls );
+-        env->DeleteLocalRef( native_ui_obj );
+-        env->DeleteLocalRef( clazz );
+-        env->DeleteLocalRef( activity );
+-        return result;
+-    }
+-#endif // defined(__ANDROID__)
+     const bool force_uc = get_option<bool>( "FORCE_CAPITAL_YN" );
+     const auto &allow_key = force_uc ? input_context::disallow_lower_case_or_non_modified_letters
+                             : input_context::allow_all_keys;
+@@ -875,7 +850,6 @@ bool query_yn( const std::string &text )
+ 
+ query_ynq_result query_ynq( const std::string &text )
+ {
+-    // TODO: android native UI
+     const bool force_uc = get_option<bool>( "FORCE_CAPITAL_YN" );
+     const auto &allow_key = force_uc ? input_context::disallow_lower_case_or_non_modified_letters
+                             : input_context::allow_all_keys;
+@@ -948,26 +922,6 @@ PopupFlags popup_flag_from_string( const std::string &str )
+ 
+ int popup( const std::string &text, PopupFlags flags )
+ {
+-#if defined(__ANDROID__)
+-    if( get_option<bool>( "ANDROID_NATIVE_UI" ) && flags == PF_NONE ) {
+-        JNIEnv *env = ( JNIEnv * )GetAndroidJNIEnv();
+-        jobject activity = ( jobject )GetAndroidActivity();
+-        jclass clazz( env->GetObjectClass( activity ) );
+-        jmethodID get_nativeui_method_id = env->GetMethodID( clazz, "getNativeUI",
+-                                           "()Lcom/cleverraven/cataclysmdda/NativeUI;" );
+-        jobject native_ui_obj = env->CallObjectMethod( activity, get_nativeui_method_id );
+-        jclass native_ui_cls( env->GetObjectClass( native_ui_obj ) );
+-        jmethodID queryYN_method_id = env->GetMethodID( native_ui_cls, "popup", "(Ljava/lang/String;)V" );
+-        jstring jstr = env->NewStringUTF( remove_color_tags( text ).c_str() );
+-        env->CallVoidMethod( native_ui_obj, queryYN_method_id, jstr );
+-        env->DeleteLocalRef( jstr );
+-        env->DeleteLocalRef( native_ui_cls );
+-        env->DeleteLocalRef( native_ui_obj );
+-        env->DeleteLocalRef( clazz );
+-        env->DeleteLocalRef( activity );
+-        return UNKNOWN_UNICODE;
+-    }
+-#endif
+     query_popup pop;
+     pop.preferred_keyboard_mode( keyboard_mode::keychar );
+     pop.message( "%s", text );
+diff --git a/src/uilist.cpp b/src/uilist.cpp
+index fa83377..cfe5f88 100644
+--- a/src/uilist.cpp
++++ b/src/uilist.cpp
+@@ -25,11 +25,6 @@
+ #include "imgui/imgui.h"
+ #include "imgui/imgui_internal.h"
+ 
+-#if defined(__ANDROID__)
+-#include <jni.h>
+-#include "options.h"
+-#endif
+-
+ #if defined(TILES) && !defined(__ANDROID__)
+ #include "sdl_wrappers.h"
+ #endif
+@@ -922,70 +917,6 @@ shared_ptr_fast<uilist_impl> uilist::query( bool loop, int timeout, bool allow_u
+  */
+ bool uilist::query_setup()
+ {
+-#if defined(__ANDROID__)
+-    if( get_option<bool>( "ANDROID_NATIVE_UI" ) && !entries.empty() && !desired_bounds ) {
+-        if( !started ) {
+-            calc_data();
+-            started = true;
+-        }
+-        JNIEnv *env = ( JNIEnv * )GetAndroidJNIEnv();
+-        jobject activity = ( jobject )GetAndroidActivity();
+-        jclass clazz( env->GetObjectClass( activity ) );
+-        jmethodID get_nativeui_method_id = env->GetMethodID( clazz, "getNativeUI",
+-                                           "()Lcom/cleverraven/cataclysmdda/NativeUI;" );
+-        jobject native_ui_obj = env->CallObjectMethod( activity, get_nativeui_method_id );
+-        jclass native_ui_cls( env->GetObjectClass( native_ui_obj ) );
+-        jmethodID list_menu_method_id = env->GetMethodID( native_ui_cls, "singleChoiceList",
+-                                        "(Ljava/lang/String;[Ljava/lang/String;[Z)I" );
+-        jstring jstr_message = env->NewStringUTF( text.c_str() );
+-        jobjectArray j_options = env->NewObjectArray( entries.size(), env->FindClass( "java/lang/String" ),
+-                                 env->NewStringUTF( "" ) );
+-        jbooleanArray j_enabled = env->NewBooleanArray( entries.size() );
+-        jboolean *n_enabled = new jboolean[entries.size()];
+-        for( std::size_t i = 0; i < entries.size(); i++ ) {
+-            std::string entry = remove_color_tags( entries[i].txt );
+-            if( !entries[i].ctxt.empty() ) {
+-                std::string ctxt = remove_color_tags( entries[i].ctxt );
+-                while( !ctxt.empty() && ctxt.back() == '\n' ) {
+-                    ctxt.pop_back();
+-                }
+-                if( !ctxt.empty() ) {
+-                    str_append( entry, "\n", ctxt );
+-                }
+-            }
+-            if( desc_enabled ) {
+-                std::string desc = remove_color_tags( entries[i].desc );
+-                while( !desc.empty() && desc.back() == '\n' ) {
+-                    desc.pop_back();
+-                }
+-                if( !desc.empty() ) {
+-                    str_append( entry, "\n", desc );
+-                }
+-            }
+-            env->SetObjectArrayElement( j_options, i, env->NewStringUTF( entry.c_str() ) );
+-            n_enabled[i] = entries[i].enabled;
+-        }
+-        env->SetBooleanArrayRegion( j_enabled, 0, entries.size(), n_enabled );
+-        int j_ret = env->CallIntMethod( native_ui_obj, list_menu_method_id, jstr_message, j_options,
+-                                        j_enabled );
+-        env->DeleteLocalRef( j_enabled );
+-        env->DeleteLocalRef( j_options );
+-        env->DeleteLocalRef( jstr_message );
+-        env->DeleteLocalRef( native_ui_cls );
+-        env->DeleteLocalRef( native_ui_obj );
+-        env->DeleteLocalRef( clazz );
+-        env->DeleteLocalRef( activity );
+-        delete[] n_enabled;
+-        if( j_ret == -1 ) {
+-            ret = UILIST_CANCEL;
+-        } else if( 0 <= j_ret && j_ret < static_cast<int>( entries.size() ) ) {
+-            ret = entries[j_ret].retval;
+-        } else {
+-            ret = UILIST_ERROR;
+-        }
+-        return false;
+-    }
+-#endif
+     ret_evt = input_event();
+     if( entries.empty() ) {
+         ret = UILIST_ERROR;

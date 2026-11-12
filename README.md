@@ -44,6 +44,8 @@ The touch controls are the ones from upstream's Android port:
 The shortcut bar learns: keys you type on the keyboard and actions picked from the action menu
 are added to it. Everything above can be changed under **Settings → Touch**.
 
+Android in-game dialogs and choice menus use the game's UI, not Android system widgets.
+
 The ⌨ button sits in the top-left corner on Android. On iOS it sits in the empty margin beside
 the screen on iPhones with a notch or Dynamic Island, and in the top-right corner otherwise. The
 iOS button hides itself while a hardware keyboard is connected.
