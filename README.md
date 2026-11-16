@@ -26,7 +26,7 @@ There is no App Store release. Install the app with your own Apple ID:
 1. Download the unsigned IPA from the [Releases](../../releases) page, or the
    **Cataclysm-unsigned-ipa** artifact from a successful run of the
    [iOS workflow](../../actions/workflows/ios.yml) (unzip it to get
-   `Cataclysm-0.I-1-unsigned.ipa`).
+   `Cataclysm-...-unsigned.ipa`).
 2. Sign and install it with a sideloading tool such as [AltStore](https://altstore.io/) or
    [Sideloadly](https://sideloadly.io/). With a free Apple ID the signature lasts 7 days,
    after which the tool has to refresh it; your saves are kept.
