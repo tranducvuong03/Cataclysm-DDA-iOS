@@ -5,11 +5,19 @@ An unofficial iPhone and iPad port. Install the latest IPA from
 
 Upstream: [CleverRaven/CataclysmDDA](https://github.com/CleverRaven/Cataclysm-DDA)
 
-<div align="center">
-  <img width="30%" alt="image" src="https://github.com/user-attachments/assets/0f660bfe-07d6-40ca-acd8-3ad61e96b919" />
-  <img width="30%" alt="image" src="https://github.com/user-attachments/assets/70a1140a-829b-49f4-a99d-589a44c8219b" />
-  <img width="30%" alt="image" src="https://github.com/user-attachments/assets/73c6b8d2-ebf0-4bb3-982d-7f32ee66a42b" />
-</div>
+<table>
+  <tr>
+    <td width="33.33%">
+      <img src="https://github.com/user-attachments/assets/0f660bfe-07d6-40ca-acd8-3ad61e96b919" alt="Screenshot 1" />
+    </td>
+    <td width="33.33%">
+      <img src="https://github.com/user-attachments/assets/70a1140a-829b-49f4-a99d-589a44c8219b" alt="Screenshot 2" />
+    </td>
+    <td width="33.33%">
+      <img src="https://github.com/user-attachments/assets/73c6b8d2-ebf0-4bb3-982d-7f32ee66a42b" alt="Screenshot 3" />
+    </td>
+  </tr>
+</table>
 
 ## Installing (Newest stable 0.I & Experimental version)
 
