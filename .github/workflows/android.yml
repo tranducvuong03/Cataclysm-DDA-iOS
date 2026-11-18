@@ -76,6 +76,9 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
@@ -123,7 +126,7 @@ jobs:
           chmod +x gradlew
           source "$GITHUB_WORKSPACE/cdda.env"
           export UPSTREAM_BUILD_NUMBER="$((11581 + GITHUB_RUN_NUMBER))"
-          ./gradlew --no-daemon -x makeLocalization -Pj="$(nproc)" \
+          ./gradlew --no-daemon --build-cache -x makeLocalization -Pj="$(nproc)" \
             -Poverride_version="$CDDA_VERSION_STRING" \
             -Pversion_header_path=../src/version.h \
             -Pabi_arm_32=false -Pabi_arm_64=true \
