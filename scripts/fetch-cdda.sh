@@ -47,6 +47,23 @@ fi
 shopt -s nullglob
 patches=("$ROOT"/patches/*.patch)
 if (( ${#patches[@]} )); then
+    compat_patch=""
+    cleanup_compat_patch() {
+        if [[ -n "$compat_patch" ]]; then
+            rm -f "$compat_patch"
+        fi
+    }
+    trap cleanup_compat_patch EXIT
+
+    # Upstream moved dialogue::opt_imgui from npctalk.cpp to dialogue.cpp.
+    # Keep patch 0001 applicable to both layouts.
+    if [[ -f "$DEST/src/dialogue.cpp" ]] &&
+            grep -q 'talk_topic dialogue::opt_imgui' "$DEST/src/dialogue.cpp"; then
+        compat_patch="$(mktemp)"
+        sed 's@src/npctalk\.cpp@src/dialogue.cpp@g' "${patches[0]}" > "$compat_patch"
+        patches[0]="$compat_patch"
+    fi
+
     echo "==> Applying ${#patches[@]} patch(es)"
     "${GIT[@]}" -C "$DEST" am --quiet --whitespace=nowarn --committer-date-is-author-date "${patches[@]}"
 fi
