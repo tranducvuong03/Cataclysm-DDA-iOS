@@ -67,7 +67,6 @@ jobs:
           path.write_text(text)
           PY
           source cdda.env
-          test "$CDDA_TRANSLATIONS_REF" = "cdda-experimental-2026-10-30-2308"
           echo "Building $CDDA_VERSION_STRING with translations from $CDDA_TRANSLATIONS_REF"
 
       - name: Set up Java
