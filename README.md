@@ -64,3 +64,23 @@ To rebuild the latest pinned version, run the workflow manually and enable **Reb
 
 To build an optimized ARM64 Android APK for the latest upstream version, run the
 [Android workflow](https://github.com/tranducvuong03/Cataclysm-DDA-iOS/actions/workflows/android.yml).
+
+### Trying a different translation release
+
+The default translation release and checksum are pinned in `cdda.env`. To try another
+release for one compile without changing that file, set the release and its official
+archive SHA-256 on the command line:
+
+```sh
+CDDA_TRANSLATIONS_REF=cdda-experimental-YYYY-MM-DD-HHMM \
+CDDA_TRANSLATIONS_SHA256=<archive-sha256> \
+CDDA_TRANSLATIONS_FORCE_ARCHIVE=true \
+scripts/compile-translations.sh
+```
+
+Get the checksum for the matching `cdda-translations-*.tar.gz` release asset. These overrides apply only to that command. Compilation updates the translations in the
+current checkout; restore the pinned translations afterward with:
+
+```sh
+CDDA_TRANSLATIONS_FORCE_ARCHIVE=true scripts/compile-translations.sh
+```
