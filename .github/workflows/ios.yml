@@ -159,9 +159,11 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: build/translations
-          key: cdda-translations-2026-10-30-2308
+          key: cdda-translations-${{ hashFiles('cdda.env') }}
 
       - name: Compile translations
+        env:
+          CDDA_TRANSLATIONS_FORCE_ARCHIVE: "true"
         run: scripts/compile-translations.sh
 
       - name: Save upstream translation archive
