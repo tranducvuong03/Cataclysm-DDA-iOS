@@ -31,9 +31,7 @@ There is no App Store release. Install the app with your own Apple ID:
    [Sideloadly](https://sideloadly.io/). With a free Apple ID the signature lasts 7 days,
    after which the tool has to refresh it; your saves are kept.
 
-## Playing on a touch screen
-
-The touch controls are the ones from upstream's Android port:
+## Controls & Gestures
 
 | Gesture | Effect |
 |---|---|
@@ -49,38 +47,11 @@ The touch controls are the ones from upstream's Android port:
 | Vehicle controls | On-screen 8-direction D-pad while driving |
 | ⌨ button | Tap to show or hide the keyboard, touch and hold to show or hide the shortcut bar |
 
-The shortcut bar learns: keys you type on the keyboard and actions picked from the action menu
-are added to it. Everything above can be changed under **Settings → Touch**.
+## Build
+> **iOS Build:**
+> [iOS workflow](https://github.com/tranducvuong03/Cataclysm-IOS-Experimental/actions/workflows/ios.yml).
+> To rebuild the latest pinned version, run the workflow manually and enable **Rebuild latest upstream version**.
 
-Android in-game dialogs and choice menus use the game's UI, not Android system widgets.
-
-The ⌨ button sits in the top-left corner on Android. On iOS it sits in the empty margin beside
-the screen on iPhones with a notch or Dynamic Island, and in the top-right corner otherwise. The
-iOS button hides itself while a hardware keyboard is connected.
-
-Build on macOS with Xcode, or use the
-[GitHub Actions workflow](https://github.com/tranducvuong03/Cataclysm-IOS-Experimental/actions/workflows/ios.yml).
-To rebuild the latest pinned version, run the workflow manually and enable **Rebuild latest upstream version**.
-
-To build an optimized ARM64 Android APK for the latest upstream version, run the
-[Android workflow](https://github.com/tranducvuong03/Cataclysm-DDA-iOS/actions/workflows/android.yml).
-
-### Trying a different translation release
-
-The default translation release and checksum are pinned in `cdda.env`. To try another
-release for one compile without changing that file, set the release and its official
-archive SHA-256 on the command line:
-
-```sh
-CDDA_TRANSLATIONS_REF=cdda-experimental-YYYY-MM-DD-HHMM \
-CDDA_TRANSLATIONS_SHA256=<archive-sha256> \
-CDDA_TRANSLATIONS_FORCE_ARCHIVE=true \
-scripts/compile-translations.sh
-```
-
-Get the checksum for the matching `cdda-translations-*.tar.gz` release asset. These overrides apply only to that command. Compilation updates the translations in the
-current checkout; restore the pinned translations afterward with:
-
-```sh
-CDDA_TRANSLATIONS_FORCE_ARCHIVE=true scripts/compile-translations.sh
-```
+> **Android Build (support d-pad):**
+> [Android workflow](https://github.com/tranducvuong03/Cataclysm-DDA-iOS/actions/workflows/android.yml).
+> 
