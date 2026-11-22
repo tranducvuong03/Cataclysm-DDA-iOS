@@ -15,6 +15,8 @@ ref="$(jq -r '.tag_name' <<<"$release")"
 version="${ref#cdda-experimental-}"
 graphics_name="cdda-windows-with-graphics-x64-$version.zip"
 graphics_digest="$(jq -r --arg name "$graphics_name" '.assets[] | select(.name == $name) | .digest // empty' <<<"$release")"
+translations_name="cdda-translations-$version.tar.gz"
+translations_digest="$(jq -r --arg name "$translations_name" '.assets[] | select(.name == $name) | .digest // empty' <<<"$release")"
 
 if [[ ! "$graphics_digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
     echo "Upstream release $ref does not have the expected graphics asset and SHA-256 digest yet; will check again later."
@@ -58,5 +60,10 @@ fi
     echo "upstream_ref=$ref"
     echo "upstream_commit=$commit"
     echo "graphics_sha256=${graphics_digest#sha256:}"
+    if [[ "$translations_digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+        echo "translations_sha256=${translations_digest#sha256:}"
+    else
+        echo "translations_sha256="
+    fi
 } >> "$GITHUB_OUTPUT"
 echo "A new upstream release is ready: $ref ($commit)."

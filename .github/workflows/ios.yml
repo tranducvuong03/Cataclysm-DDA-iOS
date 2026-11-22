@@ -8,11 +8,14 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
-      rebuild_latest:
-        description: Rebuild the latest upstream version, even if it is already pinned
-        required: false
-        type: boolean
-        default: false
+      translations:
+        description: Use the latest upstream archive or the pinned archive in cdda.env (currently cdda-experimental-2026-10-30-2308)
+        required: true
+        type: choice
+        options:
+          - latest
+          - pinned
+        default: latest
   schedule:
     - cron: "7 0 * * *"
 
@@ -35,13 +38,14 @@ jobs:
       upstream_ref: ${{ steps.check.outputs.upstream_ref }}
       upstream_commit: ${{ steps.check.outputs.upstream_commit }}
       graphics_sha256: ${{ steps.check.outputs.graphics_sha256 }}
+      translations_sha256: ${{ steps.check.outputs.translations_sha256 }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Check upstream release
         id: check
         env:
-          FORCE_BUILD: ${{ inputs.rebuild_latest }}
+          FORCE_BUILD: ${{ github.event_name == 'workflow_dispatch' }}
         run: bash scripts/check-upstream-release.sh
 
   build:
@@ -64,6 +68,8 @@ jobs:
           UPSTREAM_REF: ${{ needs.check_upstream.outputs.upstream_ref }}
           UPSTREAM_COMMIT: ${{ needs.check_upstream.outputs.upstream_commit }}
           GRAPHICS_SHA256: ${{ needs.check_upstream.outputs.graphics_sha256 }}
+          TRANSLATIONS_SHA256: ${{ needs.check_upstream.outputs.translations_sha256 }}
+          TRANSLATIONS_SOURCE: ${{ inputs.translations }}
         run: |
           python3 - "$GITHUB_WORKSPACE/cdda.env" <<'PY'
           import os
@@ -78,6 +84,17 @@ jobs:
               "CDDA_VERSION_STRING": (os.environ["UPSTREAM_REF"], r"cdda-experimental-\d{4}-\d{2}-\d{2}-\d{4}"),
               "CDDA_GRAPHICS_SHA256": (os.environ["GRAPHICS_SHA256"], r"[0-9a-f]{64}"),
           }
+          if os.environ["TRANSLATIONS_SOURCE"] == "latest":
+              values["CDDA_TRANSLATIONS_REF"] = (
+                  os.environ["UPSTREAM_REF"],
+                  r"cdda-experimental-\d{4}-\d{2}-\d{2}-\d{4}",
+              )
+              values["CDDA_TRANSLATIONS_SHA256"] = (
+                  os.environ["TRANSLATIONS_SHA256"],
+                  r"[0-9a-f]{64}",
+              )
+          elif os.environ["TRANSLATIONS_SOURCE"] not in ("pinned", ""):
+              raise SystemExit("invalid translations source")
           text = path.read_text()
           for key, (value, pattern) in values.items():
               if re.fullmatch(pattern, value) is None:
