@@ -44,8 +44,6 @@ jobs:
 
       - name: Check upstream release
         id: check
-        env:
-          FORCE_BUILD: ${{ github.event_name == 'workflow_dispatch' }}
         run: bash scripts/check-upstream-release.sh
 
   build:

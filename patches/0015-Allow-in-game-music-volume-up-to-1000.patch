@@ -1,10 +1,10 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Copilot <223556219+Copilot@users.noreply.github.com>
 Date: Sun, 22 Nov 2026 20:30:00 +0700
-Subject: [PATCH] Allow in-game audio volume settings up to 400
+Subject: [PATCH] Allow in-game music volume up to 1000
 
-Extend the existing music, sound effect, and ambient volume settings and
-pass their values through to SDL mixer gain without clamping at 128.
+Raise only the music volume limit to 1000. The existing music-volume path
+scales each track's actual SDL mixer gain, including values above 1.0.
 
 Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
 ---
@@ -21,7 +21,7 @@ index 9c1866f..0000000 100644
          add( "MUSIC_VOLUME", page_id, to_translation( "Music volume" ),
               to_translation( "Adjust the volume of the music being played in the background." ),
 -             0, 128, 100, COPT_NO_SOUND_HIDE
-+             0, 400, 100, COPT_NO_SOUND_HIDE
++             0, 1000, 100, COPT_NO_SOUND_HIDE
             );
  
          get_option( "MUSIC_VOLUME" ).setPrerequisite( "SOUND_ENABLED" );
