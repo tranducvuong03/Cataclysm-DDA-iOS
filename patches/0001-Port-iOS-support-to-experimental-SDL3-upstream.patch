@@ -1882,12 +1882,12 @@ index a660043..74dfd2f 100644
      if( last_input.type == input_event_t::keyboard_char ) {
          previously_pressed_key = last_input.get_first_input();
 -#if defined(__ANDROID__)
-+#if defined(__ANDROID__) || defined(CATA_IOS)
++#if defined(CATA_IOS)
          android_vibrate();
  #endif
      }
 -#if defined(__ANDROID__)
-+#if defined(__ANDROID__) || defined(CATA_IOS)
++#if defined(CATA_IOS)
      else if( last_input.type == input_event_t::gamepad ) {
          android_vibrate();
      }

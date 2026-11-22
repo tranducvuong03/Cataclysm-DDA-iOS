@@ -1,0 +1,57 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Copilot <223556219+Copilot@users.noreply.github.com>
+Date: Sun, 22 Nov 2026 20:30:00 +0700
+Subject: [PATCH] Allow in-game audio volume settings up to 400
+
+Extend the existing music, sound effect, and ambient volume settings and
+pass their values through to SDL mixer gain without clamping at 128.
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
+---
+ src/options.cpp            | 6 +++---
+ src/sound_backend_sdl3.cpp | 3 ---
+ 2 files changed, 3 insertions(+), 6 deletions(-)
+
+diff --git a/src/options.cpp b/src/options.cpp
+index 9c1866f..0000000 100644
+--- a/src/options.cpp
++++ b/src/options.cpp
+@@ -1851,21 +1851,21 @@ void options_manager::add_options_general()
+ 
+         add( "MUSIC_VOLUME", page_id, to_translation( "Music volume" ),
+              to_translation( "Adjust the volume of the music being played in the background." ),
+-             0, 128, 100, COPT_NO_SOUND_HIDE
++             0, 400, 100, COPT_NO_SOUND_HIDE
+            );
+ 
+         get_option( "MUSIC_VOLUME" ).setPrerequisite( "SOUND_ENABLED" );
+ 
+         add( "SOUND_EFFECT_VOLUME", page_id, to_translation( "Sound effect volume" ),
+              to_translation( "Adjust the volume of sound effects being played by the game." ),
+-             0, 128, 100, COPT_NO_SOUND_HIDE
++             0, 400, 100, COPT_NO_SOUND_HIDE
+            );
+ 
+         get_option( "SOUND_EFFECT_VOLUME" ).setPrerequisite( "SOUND_ENABLED" );
+ 
+         add( "AMBIENT_SOUND_VOLUME", page_id, to_translation( "Ambient sound volume" ),
+              to_translation( "Adjust the volume of ambient sounds being played by the game." ),
+-             0, 128, 100, COPT_NO_SOUND_HIDE
++             0, 400, 100, COPT_NO_SOUND_HIDE
+            );
+ 
+         get_option( "AMBIENT_SOUND_VOLUME" ).setPrerequisite( "SOUND_ENABLED" );
+diff --git a/src/sound_backend_sdl3.cpp b/src/sound_backend_sdl3.cpp
+index 2de742b..0000000 100644
+--- a/src/sound_backend_sdl3.cpp
++++ b/src/sound_backend_sdl3.cpp
+@@ -130,9 +130,6 @@ float volume_to_gain( int vol )
+     if( vol <= 0 ) {
+         return 0.0f;
+     }
+-    if( vol >= 128 ) {
+-        return 1.0f;
+-    }
+     return static_cast<float>( vol ) / 128.0f;
+ }
+ 
