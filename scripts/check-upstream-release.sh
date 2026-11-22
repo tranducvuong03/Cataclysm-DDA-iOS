@@ -3,6 +3,19 @@ set -euo pipefail
 
 : "${GITHUB_OUTPUT:?GITHUB_OUTPUT must be set}"
 
+ignore_ios_release=false
+case "${1:-}" in
+    "")
+        ;;
+    --ignore-ios-release)
+        ignore_ios_release=true
+        ;;
+    *)
+        echo "error: unknown argument: $1" >&2
+        exit 2
+        ;;
+esac
+
 upstream_api="https://api.github.com/repos/CleverRaven/Cataclysm-DDA/releases?per_page=100"
 release_json="$(curl -fsSL "$upstream_api")"
 release="$(jq -cer '[.[] | select(.draft == false and (.tag_name | test("^cdda-experimental-[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{4}$")))][0] // empty' <<<"$release_json")"
@@ -30,7 +43,7 @@ if [[ -n "${GH_TOKEN:-}" ]]; then
     api_headers+=(-H "Authorization: Bearer $GH_TOKEN")
 fi
 source cdda.env
-if [[ "$CDDA_REF" == "$ref" ]]; then
+if [[ "$CDDA_REF" == "$ref" && "$ignore_ios_release" != "true" ]]; then
     page=1
     published=false
     while true; do

@@ -34,9 +34,7 @@ jobs:
 
       - name: Check latest upstream release
         id: check
-        env:
-          FORCE_BUILD: "true"
-        run: bash scripts/check-upstream-release.sh
+        run: bash scripts/check-upstream-release.sh --ignore-ios-release
 
   build:
     name: Build Android APK
